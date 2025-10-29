@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,15 +26,19 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, Package, Search, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import InventoryForm from '@/components/InventoryForm';
+import CategoryForm from '@/components/CategoryForm';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
+  const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
@@ -58,6 +63,23 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredItems(items);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredItems(
+        items.filter(
+          (item) =>
+            item.name.toLowerCase().includes(query) ||
+            item.sku.toLowerCase().includes(query) ||
+            item.category.toLowerCase().includes(query) ||
+            (item.description && item.description.toLowerCase().includes(query))
+        )
+      );
+    }
+  }, [searchQuery, items]);
+
   const fetchItems = async () => {
     try {
       const { data, error } = await supabase
@@ -67,6 +89,7 @@ export default function AdminDashboard() {
 
       if (error) throw error;
       setItems(data || []);
+      setFilteredItems(data || []);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -145,10 +168,10 @@ export default function AdminDashboard() {
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background bg-black/80">
       <Header 
-        title="Inventory Management" 
-        subtitle={`${profile?.email}${profile?.isAdmin ? ' • Admin' : ''}`}
+        title="Shreeji Foods" 
+        subtitle={`${profile?.email}${profile?.isAdmin ? ' Manage your Inventory here' : ''}`}
       />
 
       <div className="container mx-auto px-4 py-8">
@@ -177,20 +200,44 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <CardTitle>Inventory Items</CardTitle>
                 <CardDescription>Manage your inventory stock</CardDescription>
               </div>
-              <Button
-                onClick={() => {
-                  setSelectedItem(null);
-                  setFormOpen(true);
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setCategoryFormOpen(true)}
+                >
+                  <Tag className="w-4 h-4 mr-2" />
+                  Add Category
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedItem(null);
+                    setFormOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </Button>
+              </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Search by name, SKU, category, or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                  }
                 }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item
-              </Button>
+                className="pl-10"
+              />
             </div>
           </CardHeader>
           <CardContent>
@@ -198,10 +245,12 @@ export default function AdminDashboard() {
               <div className="text-center py-8 text-muted-foreground">
                 Loading inventory...
               </div>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No items in inventory</p>
+                <p className="text-muted-foreground">
+                  {searchQuery ? 'No items match your search' : 'No items in inventory'}
+                </p>
                 <Button
                   variant="outline"
                   className="mt-4"
@@ -220,16 +269,16 @@ export default function AdminDashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead className="text-center">SKU</TableHead>
+                      <TableHead className="text-center">Category</TableHead>
+                      <TableHead className="text-center">Quantity</TableHead>
                       <TableHead className="text-center">Visible</TableHead>
-                      <TableHead>Last Updated</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-center">Last Updated</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map((item) => (
+                    {filteredItems.map((item) => (
                       <TableRow
                         key={item.id}
                         className={!item.is_visible ? 'bg-muted/40' : undefined}
@@ -244,19 +293,19 @@ export default function AdminDashboard() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <code className="text-xs bg-muted px-2 py-1 rounded">
                             {item.sku}
                           </code>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {item.category ? (
                             <Badge variant="secondary">{item.category}</Badge>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <Badge
                             variant={item.quantity === 0 ? 'destructive' : 'default'}
                           >
@@ -264,7 +313,7 @@ export default function AdminDashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center gap-2">
                             <Switch
                               checked={item.is_visible}
                               onCheckedChange={(checked) => handleVisibilityToggle(item, checked)}
@@ -275,13 +324,17 @@ export default function AdminDashboard() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-center text-sm text-muted-foreground">
                           {item.last_updated
-                            ? format(new Date(item.last_updated), 'MMM d, yyyy • h:mm a')
+                            ? (() => {
+                                const utcDate = new Date(item.last_updated);
+                                const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+                                return format(istDate, 'MMM d, yyyy • h:mm a');
+                              })()
                             : '—'}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                        <TableCell className="text-center">
+                          <div className="flex justify-center gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -312,6 +365,12 @@ export default function AdminDashboard() {
         open={formOpen}
         onOpenChange={setFormOpen}
         item={selectedItem}
+        onSuccess={fetchItems}
+      />
+
+      <CategoryForm
+        open={categoryFormOpen}
+        onOpenChange={setCategoryFormOpen}
         onSuccess={fetchItems}
       />
 

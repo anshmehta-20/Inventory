@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -30,7 +31,7 @@ const inventorySchema = z.object({
   description: z.string().default(''),
   quantity: z.coerce.number().min(0, 'Quantity must be 0 or greater'),
   sku: z.string().min(1, 'SKU is required'),
-  category: z.string().default(''),
+  category: z.string().nullable().default(null),
   is_visible: z.boolean().default(true),
 });
 
@@ -54,33 +55,53 @@ export default function InventoryForm({
 
   const form = useForm<InventoryFormData>({
     resolver: zodResolver(inventorySchema),
-    defaultValues: item
-      ? {
-          name: item.name,
-          description: item.description ?? '',
-          quantity: item.quantity,
-          sku: item.sku,
-          category: item.category ?? '',
-          is_visible: item.is_visible,
-        }
-      : {
-          name: '',
-          description: '',
-          quantity: 0,
-          sku: '',
-          category: '',
-          is_visible: true,
-        },
+    defaultValues: {
+      name: '',
+      description: '',
+      quantity: 0,
+      sku: '',
+      category: null,
+      is_visible: true,
+    },
   });
+
+  // Update form values when item changes
+  useEffect(() => {
+    if (item) {
+      form.reset({
+        name: item.name,
+        description: item.description ?? '',
+        quantity: item.quantity,
+        sku: item.sku,
+        category: item.category ?? null,
+        is_visible: item.is_visible,
+      });
+    } else {
+      form.reset({
+        name: '',
+        description: '',
+        quantity: 0,
+        sku: '',
+        category: null,
+        is_visible: true,
+      });
+    }
+  }, [item, form]);
 
   const onSubmit = async (data: InventoryFormData) => {
     try {
       setLoading(true);
 
+      // Convert empty string category to null
+      const submitData = {
+        ...data,
+        category: !data.category || data.category.trim() === '' ? null : data.category,
+      };
+
       if (item) {
         const { error } = await supabase
           .from('inventory_items')
-          .update(data)
+          .update(submitData)
           .eq('id', item.id);
 
         if (error) throw error;
@@ -90,7 +111,7 @@ export default function InventoryForm({
           description: 'Item updated successfully',
         });
       } else {
-        const { error } = await supabase.from('inventory_items').insert([data]);
+        const { error } = await supabase.from('inventory_items').insert([submitData]);
 
         if (error) throw error;
 
@@ -177,7 +198,7 @@ export default function InventoryForm({
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <FormControl>
-                      <Input placeholder="Electronics" {...field} />
+                      <Input placeholder="Sweets" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -207,7 +228,7 @@ export default function InventoryForm({
               control={form.control}
               name="is_visible"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
+                <FormItem className="flex flex-row items-center justify-between rounded-[var(--radius)] border border-border bg-card px-4 py-3">
                   <div className="space-y-0.5">
                     <FormLabel>Visible to customers</FormLabel>
                     <FormDescription>
