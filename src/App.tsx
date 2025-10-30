@@ -1,10 +1,11 @@
 
+import type { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import DarkMode from '@/components/DarkMode';
 
@@ -16,10 +17,27 @@ import Index from '@/pages/Index';
 
 // Dummy NotFound and RequireAdmin for fallback (replace with your actual components)
 const NotFound = () => <div>404 Not Found</div>;
-const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
-  const { profile } = useAuth();
-  if (profile?.isAdmin) return <>{children}</>;
-  return <NotFound />;
+
+const RequireAdmin = ({ children }: { children: ReactNode }) => {
+  const { user, profile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
+        Checking permissions...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!profile?.isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 
