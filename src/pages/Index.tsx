@@ -108,8 +108,8 @@ export default function UserDashboard() {
           </Card>
         </div>
 
-        <Card className="mb-6 max-w-2xl mx-auto">
-          <CardHeader className="items-center text-center">
+         <Card className="mb-6">
+          <CardHeader>
             <CardTitle>Search Inventory</CardTitle>
           </CardHeader>
           <CardContent>
