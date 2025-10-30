@@ -224,7 +224,11 @@ export default function InventoryForm({
                 <FormItem>
                   <FormLabel>Category</FormLabel>
                   <FormControl>
-                    <Input placeholder="Sweets" {...field} />
+                    <Input
+                      placeholder="Sweets"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

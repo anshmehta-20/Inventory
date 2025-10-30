@@ -49,7 +49,7 @@ export default function DarkMode({ children, strict = true }: DarkModeProps) {
       style.id = 'darkmode-strict-styles';
       style.textContent = `
         .dark * {
-          border-color: hsl(var(--border)) !important;
+          border-color: hsl(var(--border));
         }
         
         .dark body {

@@ -269,7 +269,7 @@ export default function AdminDashboard() {
                 </Button>
               </div>
             ) : (
-              <div className="rounded-md border">
+              <div className="rounded-md border border-border dark:border-[#080808]">
                 <Table>
                   <TableHeader>
                     <TableRow>
