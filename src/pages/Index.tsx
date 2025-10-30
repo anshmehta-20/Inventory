@@ -177,7 +177,7 @@ export default function UserDashboard() {
                       </p>
                       <Badge
                         variant={item.quantity === 0 ? 'destructive' : 'default'}
-                        className="text-base px-3"
+                        className="text-primary-foreground px-3"
                       >
                         {item.quantity}
                       </Badge>

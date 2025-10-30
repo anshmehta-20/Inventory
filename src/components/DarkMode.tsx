@@ -58,8 +58,8 @@ export default function DarkMode({ children, strict = true }: DarkModeProps) {
         }
         
         .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6,
-        .dark p, .dark span, .dark div, .dark label, .dark button {
-          color: hsl(var(--foreground)) !important;
+        .dark p, .dark label {
+          color: hsl(var(--foreground));
         }
         
         .dark input, .dark textarea, .dark select {
