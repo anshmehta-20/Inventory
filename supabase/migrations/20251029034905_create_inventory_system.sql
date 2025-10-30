@@ -9,6 +9,7 @@ create table public.category (
 create table public.inventory_items (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  price int not null default 0,
   description text,
   sku text not null unique default '',
   category text references public.category(name) on delete set null default null,
@@ -102,3 +103,22 @@ create policy "Users can view category"
 on public.category
 for select
 using (true);
+
+-- 1Create the trigger function
+create or replace function public.nullify_empty_category_name()
+returns trigger
+as $$
+begin
+  -- If category_name is an empty string, set it to NULL
+  if new.category_name = '' then
+    new.category_name := null;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- Create the trigger on inventory_items
+create trigger trg_nullify_empty_category_name
+before insert or update on public.inventory_items
+for each row
+execute function public.nullify_empty_category_name();

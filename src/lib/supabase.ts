@@ -22,6 +22,7 @@ export interface InventoryItem {
   sku: string;
   category: string;
   quantity: number;
+  price: number | null;
   is_visible: boolean;
   last_updated: string;
   updated_by: string | null;

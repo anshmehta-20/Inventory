@@ -44,8 +44,9 @@ export default function UserDashboard() {
           (item) =>
             item.name.toLowerCase().includes(query) ||
             item.sku.toLowerCase().includes(query) ||
-            item.category.toLowerCase().includes(query) ||
-            item.description.toLowerCase().includes(query)
+            (item.category && item.category.toLowerCase().includes(query)) ||
+            (item.description && item.description.toLowerCase().includes(query)) ||
+            (typeof item.price === 'number' && item.price.toString().includes(query))
         )
       );
     }
@@ -74,6 +75,11 @@ export default function UserDashboard() {
   };
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  const formatCurrency = (value: number | null | undefined) =>
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+    }).format(value ?? 0);
   const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean)));
 
   return (
@@ -102,8 +108,8 @@ export default function UserDashboard() {
           </Card>
         </div>
 
-        <Card className="mb-6">
-          <CardHeader>
+        <Card className="mb-6 max-w-2xl mx-auto">
+          <CardHeader className="items-center text-center">
             <CardTitle>Search Inventory</CardTitle>
           </CardHeader>
           <CardContent>
@@ -164,7 +170,7 @@ export default function UserDashboard() {
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="flex flex-wrap items-start justify-between gap-4 pt-2 border-t">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">
                         Available Quantity
@@ -175,6 +181,12 @@ export default function UserDashboard() {
                       >
                         {item.quantity}
                       </Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Price</p>
+                      <p className="text-sm font-semibold">
+                        {formatCurrency(item.price)}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground mb-1">

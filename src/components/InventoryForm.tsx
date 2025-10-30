@@ -30,6 +30,7 @@ const inventorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().default(''),
   quantity: z.coerce.number().min(0, 'Quantity must be 0 or greater'),
+  price: z.coerce.number().min(0, 'Price must be 0 or greater'),
   sku: z.string().min(1, 'SKU is required'),
   category: z.string().nullable().default(null),
   is_visible: z.boolean().default(true),
@@ -59,6 +60,7 @@ export default function InventoryForm({
       name: '',
       description: '',
       quantity: 0,
+      price: 0,
       sku: '',
       category: null,
       is_visible: true,
@@ -72,6 +74,7 @@ export default function InventoryForm({
         name: item.name,
         description: item.description ?? '',
         quantity: item.quantity,
+        price: item.price ?? 0,
         sku: item.sku,
         category: item.category ?? null,
         is_visible: item.is_visible,
@@ -81,6 +84,7 @@ export default function InventoryForm({
         name: '',
         description: '',
         quantity: 0,
+        price: 0,
         sku: '',
         category: null,
         is_visible: true,
@@ -137,7 +141,7 @@ export default function InventoryForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{item ? 'Edit Item' : 'Add New Item'}</DialogTitle>
           <DialogDescription>
@@ -147,7 +151,7 @@ export default function InventoryForm({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-1">
             <FormField
               control={form.control}
               name="name"
@@ -176,7 +180,7 @@ export default function InventoryForm({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="quantity"
@@ -193,18 +197,39 @@ export default function InventoryForm({
 
               <FormField
                 control={form.control}
-                name="category"
+                name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel>Price</FormLabel>
                     <FormControl>
-                      <Input placeholder="Sweets" {...field} />
+                      <Input
+                        type="number"
+                        step="1"
+                        min="0"
+                        inputMode="numeric"
+                        placeholder="0"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Sweets" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

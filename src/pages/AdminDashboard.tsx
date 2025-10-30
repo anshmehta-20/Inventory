@@ -73,8 +73,9 @@ export default function AdminDashboard() {
           (item) =>
             item.name.toLowerCase().includes(query) ||
             item.sku.toLowerCase().includes(query) ||
-            item.category.toLowerCase().includes(query) ||
-            (item.description && item.description.toLowerCase().includes(query))
+            (item.category && item.category.toLowerCase().includes(query)) ||
+            (item.description && item.description.toLowerCase().includes(query)) ||
+            (typeof item.price === 'number' && item.price.toString().includes(query))
         )
       );
     }
@@ -166,9 +167,14 @@ export default function AdminDashboard() {
   };
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  const formatCurrency = (value: number | null | undefined) =>
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+    }).format(value ?? 0);
 
   return (
-    <div className="min-h-screen bg-background bg-black/80">
+    <div className="min-h-screen bg-background">
       <Header 
         title="Shreeji Foods" 
         subtitle={`${profile?.email}${profile?.isAdmin ? ' Manage your Inventory here' : ''}`}
@@ -200,10 +206,9 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Inventory Items</CardTitle>
-                <CardDescription>Manage your inventory stock</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -271,8 +276,9 @@ export default function AdminDashboard() {
                       <TableHead>Name</TableHead>
                       <TableHead className="text-center">SKU</TableHead>
                       <TableHead className="text-center">Category</TableHead>
+                      <TableHead className="text-center">Price</TableHead>
                       <TableHead className="text-center">Quantity</TableHead>
-                      <TableHead className="text-center">Visible</TableHead>
+                      <TableHead className="text-center">Visibility</TableHead>
                       <TableHead className="text-center">Last Updated</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -304,6 +310,9 @@ export default function AdminDashboard() {
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-medium">{formatCurrency(item.price)}</span>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
