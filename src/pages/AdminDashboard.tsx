@@ -253,6 +253,8 @@ export default function AdminDashboard() {
         )
       );
 
+      await fetchItems();
+
       toast({
         title: 'Visibility updated',
         description: `${item.name} is now ${isVisible ? 'visible' : 'hidden'} to customers.`,
@@ -477,7 +479,7 @@ export default function AdminDashboard() {
                     <TableRow>
                       <TableHead>Item</TableHead>
                       <TableHead className="text-center">Category</TableHead>
-                      <TableHead className="text-center">Default Variant</TableHead>
+                      <TableHead className="text-center">SKU</TableHead>
                       <TableHead className="text-center">Variants</TableHead>
                       <TableHead className="text-center">Price</TableHead>
                       <TableHead className="text-center">Quantity</TableHead>
@@ -496,6 +498,9 @@ export default function AdminDashboard() {
                       const displayQuantity = item.has_variants
                         ? defaultVariant?.quantity ?? null
                         : item.quantity ?? null;
+                      const lastUpdatedValue = item.has_variants
+                        ? defaultVariant?.last_updated ?? null
+                        : item.last_updated;
 
                       return (
                         <TableRow
@@ -523,16 +528,29 @@ export default function AdminDashboard() {
                             {item.has_variants ? (
                               defaultVariant ? (
                                 <div className="space-y-1">
-                                  <span className="font-medium">{defaultVariant.variant_value}</span>
+                                  {defaultVariant.sku ? (
+                                    <code className="text-xs bg-muted px-2 py-1 rounded">
+                                      {defaultVariant.sku}
+                                    </code>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">No SKU</span>
+                                  )}
                                   <span className="block text-xs text-muted-foreground">
-                                    {VARIANT_TYPE_LABELS[defaultVariant.variant_type]}
+                                    {defaultVariant.variant_value} • {VARIANT_TYPE_LABELS[defaultVariant.variant_type]}
                                   </span>
                                 </div>
                               ) : (
                                 <span className="text-muted-foreground text-sm">No variants yet</span>
                               )
                             ) : (
-                              <Badge variant="outline">Variants disabled</Badge>
+                              <div className="space-y-1">
+                                {item.sku ? (
+                                  <code className="text-xs bg-muted px-2 py-1 rounded">{item.sku}</code>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">SKU not set</span>
+                                )}
+                                <Badge variant="outline">No Variant</Badge>
+                              </div>
                             )}
                           </TableCell>
                           <TableCell className="text-center">
@@ -569,9 +587,7 @@ export default function AdminDashboard() {
                             </div>
                           </TableCell>
                           <TableCell className="text-center text-sm text-muted-foreground">
-                            {item.has_variants && defaultVariant
-                              ? formatVariantTimestamp(defaultVariant.last_updated)
-                              : '—'}
+                            {lastUpdatedValue ? formatVariantTimestamp(lastUpdatedValue) : '—'}
                           </TableCell>
                           <TableCell className="text-center">
                             <DropdownMenu>

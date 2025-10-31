@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase, ItemVariant } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -58,6 +59,7 @@ export default function VariantForm({
 }: VariantFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { profile } = useAuth();
 
   const form = useForm<VariantFormData>({
     resolver: zodResolver(variantSchema),
@@ -112,6 +114,7 @@ export default function VariantForm({
             sku: data.sku,
             price: data.price,
             quantity: data.quantity,
+            updated_by: profile?.id ?? null,
           })
           .eq('id', variant.id);
 
@@ -130,6 +133,7 @@ export default function VariantForm({
             sku: data.sku,
             price: data.price,
             quantity: data.quantity,
+            updated_by: profile?.id ?? null,
           },
         ]);
 
@@ -183,7 +187,7 @@ export default function VariantForm({
                       <SelectContent>
                         <SelectItem value="weight">Weight</SelectItem>
                         <SelectItem value="pcs">Pieces</SelectItem>
-                        <SelectItem value="price">Price Option</SelectItem>
+                        <SelectItem value="price">Price</SelectItem>
                         <SelectItem value="flavor">Flavor</SelectItem>
                         <SelectItem value="size">Size</SelectItem>
                       </SelectContent>

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { supabase, InventoryItem } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -39,6 +40,11 @@ const inventorySchema = z.object({
     .optional(),
   is_visible: z.boolean().default(true),
   has_variants: z.boolean().default(false),
+  sku: z
+    .string()
+    .max(120, 'SKU must be less than 120 characters')
+    .optional()
+    .or(z.literal('')),
   price: z.coerce
     .number({ invalid_type_error: 'Price is required' })
     .min(0, 'Price cannot be negative')
@@ -47,6 +53,9 @@ const inventorySchema = z.object({
     .number({ invalid_type_error: 'Quantity is required' })
     .min(0, 'Quantity cannot be negative')
     .default(0),
+}).refine((data) => data.has_variants || (typeof data.sku === 'string' && data.sku.trim() !== ''), {
+  path: ['sku'],
+  message: 'SKU is required when variants are disabled.',
 });
 
 type InventoryFormData = z.infer<typeof inventorySchema>;
@@ -66,6 +75,7 @@ export default function InventoryForm({
 }: InventoryFormProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { profile } = useAuth();
 
   const form = useForm<InventoryFormData>({
     resolver: zodResolver(inventorySchema),
@@ -75,6 +85,7 @@ export default function InventoryForm({
       category: null,
       is_visible: true,
       has_variants: false,
+      sku: '',
       price: 0,
       quantity: 0,
     },
@@ -89,6 +100,7 @@ export default function InventoryForm({
         category: item.category ?? null,
         is_visible: item.is_visible,
         has_variants: item.has_variants,
+        sku: item.sku ?? '',
         price: item.price ?? 0,
         quantity: item.quantity ?? 0,
       });
@@ -99,6 +111,7 @@ export default function InventoryForm({
         category: null,
         is_visible: true,
         has_variants: false,
+        sku: '',
         price: 0,
         quantity: 0,
       });
@@ -113,6 +126,7 @@ export default function InventoryForm({
 
       const descriptionValue = data.description?.trim() ?? '';
       const categoryValue = typeof data.category === 'string' ? data.category.trim() : '';
+      const skuValue = typeof data.sku === 'string' ? data.sku.trim() : '';
 
       const submitData = {
         name: data.name,
@@ -122,6 +136,8 @@ export default function InventoryForm({
         has_variants: data.has_variants,
         price: data.has_variants ? 0 : data.price,
         quantity: data.has_variants ? 0 : data.quantity,
+        sku: data.has_variants ? null : skuValue === '' ? null : skuValue,
+        updated_by: profile?.id ?? null,
       };
 
       if (item) {
@@ -218,6 +234,27 @@ export default function InventoryForm({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sku"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>SKU</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., ITEM-SKU-001"
+                      disabled={watchHasVariants}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Required when variants are disabled; leave blank for variant-based items.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

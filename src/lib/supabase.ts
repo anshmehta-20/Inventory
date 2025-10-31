@@ -18,12 +18,15 @@ export interface Profile {
 export interface InventoryItem {
   id: string;
   name: string;
+  sku: string | null;
   description: string | null;
   category: string | null;
   has_variants: boolean;
   price: number;
   quantity: number;
   is_visible: boolean;
+  last_updated: string | null;
+  updated_by: string | null;
   item_variants: ItemVariant[];
 }
 

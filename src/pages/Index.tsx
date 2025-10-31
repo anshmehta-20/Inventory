@@ -126,7 +126,9 @@ export default function UserDashboard() {
             ? item.price.toString().includes(query) || item.quantity.toString().includes(query)
             : false;
 
-          return matchesItem || matchesVariant || matchesSinglePrice;
+          const matchesSku = item.sku ? item.sku.toLowerCase().includes(query) : false;
+
+          return matchesItem || matchesVariant || matchesSinglePrice || matchesSku;
         })
       );
     }
@@ -174,7 +176,7 @@ export default function UserDashboard() {
       const { data, error } = await supabase
         .from('inventory_items')
         .select(
-          'id, name, description, category, is_visible, has_variants, price, quantity, item_variants(*)'
+          'id, name, description, category, is_visible, has_variants, price, quantity, sku, last_updated, updated_by, item_variants(*)'
         )
         .order('name', { ascending: true })
         .order('variant_value', { referencedTable: 'item_variants', ascending: true });
@@ -336,11 +338,11 @@ export default function UserDashboard() {
                 ? selectedVariant?.quantity ?? null
                 : item.quantity ?? null;
               const skuLabel = isVariantBased
-                ? selectedVariant?.sku
-                : 'SKU not applicable';
+                ? selectedVariant?.sku ?? null
+                : item.sku ?? null;
               const lastUpdatedDisplay = isVariantBased
                 ? selectedVariant?.last_updated ?? null
-                : null;
+                : item.last_updated ?? null;
 
               return (
                 <Card key={item.id} className="hover:shadow-lg transition-shadow">
@@ -425,7 +427,7 @@ export default function UserDashboard() {
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
                         <p className="text-xs font-medium">
-                          {isVariantBased && lastUpdatedDisplay
+                          {lastUpdatedDisplay
                             ? formatVariantTimestamp(lastUpdatedDisplay)
                             : '—'}
                         </p>
