@@ -13,6 +13,7 @@ import DarkMode from '@/components/DarkMode';
 import LoginPage from '@/pages/LoginPage';
 import AdminDashboard from '@/pages/AdminDashboard';
 import Index from '@/pages/Index';
+import About from '@/pages/About';
 
 
 // Dummy NotFound and RequireAdmin for fallback (replace with your actual components)
@@ -66,6 +67,7 @@ const App = () => (
               {/* Main pages */}
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/about" element={<About />} />
               {/* Admin */}
               <Route
                 path="/admin"
