@@ -161,9 +161,15 @@ export default function AdminDashboard() {
             );
           });
 
-          const matchesSinglePrice = !item.has_variants
-            ? item.price.toString().includes(query) || item.quantity.toString().includes(query)
-            : false;
+          const priceMatches =
+            item.price !== null && item.price !== undefined &&
+            item.price.toString().includes(query);
+
+          const quantityMatches =
+            item.quantity !== null && item.quantity !== undefined &&
+            item.quantity.toString().includes(query);
+
+          const matchesSinglePrice = !item.has_variants ? priceMatches || quantityMatches : false;
 
           const matchesSku = item.sku ? item.sku.toLowerCase().includes(query) : false;
 

@@ -1,53 +1,63 @@
 import Header from '@/components/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
-const highlights = [
+const contactDetails = [
   {
-    title: 'Our Story',
-    description:
-      "Shreeji Foods began as a family-run sweets shop with a passion for bringing authentic flavors to our community. What started as handcrafted mithai has grown into a full-fledged inventory of delicacies, snacks, and specialty ingredients loved across the region.",
+    label: 'Address',
+    value: 'Mahavir Nagar, Kandivali West, Mumbai',
   },
   {
-    title: 'What We Offer',
-    description:
-      "From traditional sweets to festive hampers and everyday essentials, our curated catalog celebrates quality ingredients and time-honored techniques. Every product is sourced, prepared, and stored with care to ensure it reaches you at its freshest.",
+    label: 'Timings',
+    value: 'Open daily from 8:30 AM to 9:30 PM',
   },
   {
-    title: 'Why It Matters',
-    description:
-      "This dashboard helps our team track inventory in real time, respond faster to customer needs, and keep the Shreeji promise of consistency. With smarter tools, we can focus on what matters most—delighting every customer who walks through our doors.",
+    label: 'Contact',
+    value: 'Add your phone number',
+    muted: true,
   },
 ];
 
 export default function About() {
   return (
     <div className="min-h-screen bg-background">
-      <Header title="About Shreeji Foods" subtitle="Crafting sweetness since day one" />
+      <Header title="About Us" subtitle="Shreeji Foods, Mahavir Nagar" />
       <main className="container mx-auto px-4 py-12 space-y-10">
         <section className="max-w-3xl space-y-4">
-          <h2 className="text-3xl font-semibold tracking-tight text-foreground">Rooted in Tradition, Powered by Innovation</h2>
+          <h2 className="text-3xl font-semibold tracking-tight text-foreground">
+            Serving Happiness Since 1999
+          </h2>
           <p className="text-lg text-muted-foreground">
-            We're on a mission to keep the soul of traditional sweets alive while modernizing the way we operate. This platform is a reflection of that journey—bridging the warmth of our kitchen with the efficiency our customers rely on.
+            Since 1999, Shreeji Foods has been serving delicious, fresh, and authentic vegetarian meals to the community of Kandivali West, Mahavir Nagar. We are known for quality, hygiene, and homely taste, and every plate reflects our love for great food.
+          </p>
+          <p className="text-lg text-muted-foreground">
+            From classic Indian snacks to hearty meals, every dish is prepared with care so you enjoy the perfect balance of taste and freshness. Our loyal customers have trusted us for more than two decades, and we work hard to earn that trust every single day.
+          </p>
+          <p className="text-lg text-muted-foreground">
+            We believe good food brings people together, and that sense of togetherness guides everything we do.
           </p>
         </section>
 
-        <section className="grid gap-6 md:grid-cols-3">
-          {highlights.map((item) => (
-            <Card key={item.title} className="border-border/70">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">{item.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="grid gap-6 py-8 md:grid-cols-3">
+            {contactDetails.map((detail) => (
+              <div key={detail.label} className="space-y-2">
+                <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {detail.label}
+                </p>
+                <p
+                  className={detail.muted ? 'text-base text-muted-foreground italic' : 'text-base text-foreground'}
+                >
+                  {detail.value}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
-        <section className="rounded-[var(--radius)] border border-dashed border-primary/40 bg-primary/5 p-6">
-          <h3 className="text-xl font-semibold text-foreground">Looking Ahead</h3>
-          <p className="mt-3 text-muted-foreground">
-            As we continue to grow, we&apos;re investing in smarter processes, fresher inventory cycles, and meaningful customer experiences. Thank you for being a part of the Shreeji Foods family.
+        <section className="max-w-3xl space-y-4 rounded-[var(--radius)] border border-dashed border-primary/40 bg-primary/5 p-6">
+          <h3 className="text-xl font-semibold text-foreground">Visit Us Soon</h3>
+          <p className="text-muted-foreground text-base">
+            Come visit us and experience the taste of tradition and trust at Shreeji Foods. We are proud to serve Mahavir Nagar with fresh vegetarian meals and warm hospitality.
           </p>
         </section>
       </main>

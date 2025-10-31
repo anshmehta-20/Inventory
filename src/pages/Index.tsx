@@ -122,9 +122,15 @@ export default function UserDashboard() {
             );
           });
 
-          const matchesSinglePrice = !item.has_variants
-            ? item.price.toString().includes(query) || item.quantity.toString().includes(query)
-            : false;
+          const priceMatches =
+            item.price !== null && item.price !== undefined &&
+            item.price.toString().includes(query);
+
+          const quantityMatches =
+            item.quantity !== null && item.quantity !== undefined &&
+            item.quantity.toString().includes(query);
+
+          const matchesSinglePrice = !item.has_variants ? priceMatches || quantityMatches : false;
 
           const matchesSku = item.sku ? item.sku.toLowerCase().includes(query) : false;
 
@@ -359,7 +365,7 @@ export default function UserDashboard() {
                             onValueChange={(value) => handleVariantSelect(item.id, value)}
                             aria-label={`Select variant for ${item.name}`}
                           >
-                            <SelectTrigger className="h-7 min-w-[5.5rem] w-auto text-xs">
+                            <SelectTrigger className="h-7 min-w-[5rem] w-auto text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
                               <SelectValue placeholder="Variant" />
                             </SelectTrigger>
                             <SelectContent>
