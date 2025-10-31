@@ -549,7 +549,7 @@ export default function AdminDashboard() {
                                 ) : (
                                   <span className="text-sm text-muted-foreground">SKU not set</span>
                                 )}
-                                <Badge variant="outline">No Variant</Badge>
+                                
                               </div>
                             )}
                           </TableCell>

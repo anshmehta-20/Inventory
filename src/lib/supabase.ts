@@ -22,8 +22,8 @@ export interface InventoryItem {
   description: string | null;
   category: string | null;
   has_variants: boolean;
-  price: number;
-  quantity: number;
+  price: number | null;
+  quantity: number | null;
   is_visible: boolean;
   last_updated: string | null;
   updated_by: string | null;

@@ -345,40 +345,50 @@ export default function UserDashboard() {
                 : item.last_updated ?? null;
 
               return (
-                <Card key={item.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <CardTitle className="text-lg">{item.name}</CardTitle>
-                      {isVariantBased && sortedVariants.length > 0 ? (
-                        <Select
-                          value={selectedVariant?.id ?? sortedVariants[0].id}
-                          onValueChange={(value) => handleVariantSelect(item.id, value)}
-                          aria-label={`Select variant for ${item.name}`}
-                        >
-                          <SelectTrigger className="h-8 min-w-[6rem] w-auto text-sm">
-                            <SelectValue placeholder="Variant" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sortedVariants.map((variant) => (
-                              <SelectItem key={variant.id} value={variant.id}>
-                                {VARIANT_TYPE_LABELS[variant.variant_type]
-                                  ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
-                                  : variant.variant_value}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : isVariantBased ? (
-                        <Badge variant="outline" className="text-xs font-medium">
-                          No variants yet
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs font-medium">
-                          No Variant
+                <Card
+                  key={item.id}
+                  className="flex h-full flex-col hover:shadow-lg transition-shadow"
+                >
+                  <CardHeader className="space-y-2">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CardTitle className="text-lg">{item.name}</CardTitle>
+                        {isVariantBased && sortedVariants.length > 0 ? (
+                          <Select
+                            value={selectedVariant?.id ?? sortedVariants[0].id}
+                            onValueChange={(value) => handleVariantSelect(item.id, value)}
+                            aria-label={`Select variant for ${item.name}`}
+                          >
+                            <SelectTrigger className="h-7 min-w-[5.5rem] w-auto text-xs">
+                              <SelectValue placeholder="Variant" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sortedVariants.map((variant) => (
+                                <SelectItem key={variant.id} value={variant.id}>
+                                  {VARIANT_TYPE_LABELS[variant.variant_type]
+                                    ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
+                                    : variant.variant_value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : isVariantBased ? (
+                          <Badge variant="outline" className="text-xs font-medium">
+                            No variants yet
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs font-medium">
+                            No Variant
+                          </Badge>
+                        )}
+                      </div>
+                      {item.category && (
+                        <Badge variant="secondary" className="ml-auto">
+                          {item.category}
                         </Badge>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <div className="-mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {skuLabel ? (
                         <code className="bg-muted px-2 py-1 rounded">
                           {skuLabel}
@@ -386,25 +396,23 @@ export default function UserDashboard() {
                       ) : (
                         <span className="text-muted-foreground">SKU unavailable</span>
                       )}
-                      {item.category && (
-                        <Badge variant="secondary">{item.category}</Badge>
-                      )}
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="flex flex-1 flex-col space-y-4">
                     {item.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {item.description}
                       </p>
                     )}
 
-                    {isVariantBased && selectedVariant && (
-                      <div className="text-xs text-muted-foreground">
-                        Variant Type: {VARIANT_TYPE_LABELS[selectedVariant.variant_type]}
-                      </div>
-                    )}
+                    {isVariantBased && selectedVariant &&
+                      selectedVariant.variant_type !== 'price' && (
+                        <div className="text-xs text-muted-foreground">
+                          Variant Type: {VARIANT_TYPE_LABELS[selectedVariant.variant_type]}
+                        </div>
+                      )}
 
-                    <div className="flex flex-wrap items-start justify-between gap-4 pt-2 border-t">
+                    <div className="mt-auto flex flex-wrap items-start justify-between gap-4 border-t pt-2">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Available Quantity</p>
                         <Badge
