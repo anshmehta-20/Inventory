@@ -432,7 +432,7 @@ export default function AdminDashboard() {
                     setSelectedItem(null);
                     setFormOpen(true);
                   }}
-                  className="w-full rounded-[var(--radius)] sm:w-auto"
+                  className="w-full sm:w-auto"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
@@ -583,7 +583,6 @@ export default function AdminDashboard() {
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
                               <Switch
-                                size="sm"
                                 checked={item.is_visible}
                                 onCheckedChange={(checked) => handleVisibilityToggle(item, checked)}
                                 aria-label={`Toggle visibility for ${item.name}`}
@@ -599,11 +598,7 @@ export default function AdminDashboard() {
                           <TableCell className="text-center">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full rounded-[var(--radius)] sm:w-auto"
-                                >
+                                <Button variant="outline" size="sm" className="w-full sm:w-auto">
                                   Manage
                                 </Button>
                               </DropdownMenuTrigger>
