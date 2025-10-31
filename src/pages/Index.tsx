@@ -1,18 +1,73 @@
-import { useEffect, useState } from 'react';
-import { supabase, InventoryItem } from '@/lib/supabase';
+import { useEffect, useMemo, useState } from 'react';
+import { supabase, InventoryItem, ItemVariant } from '@/lib/supabase';
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Package, Search } from 'lucide-react';
 import { format } from 'date-fns';
+
+const parseNumericValue = (value: string): number | null => {
+  const match = value.match(/[\d\.]+/);
+  if (!match) {
+    return null;
+  }
+
+  const numeric = Number.parseFloat(match[0]);
+  return Number.isNaN(numeric) ? null : numeric;
+};
+
+const sortVariants = (variants: ItemVariant[]) => {
+  return [...variants].sort((a, b) => {
+    const aValue = parseNumericValue(a.variant_value);
+    const bValue = parseNumericValue(b.variant_value);
+
+    if (aValue !== null && bValue !== null && aValue !== bValue) {
+      return aValue - bValue;
+    }
+
+    if (aValue !== null && bValue === null) {
+      return -1;
+    }
+
+    if (aValue === null && bValue !== null) {
+      return 1;
+    }
+
+    if (aValue === null && bValue === null && a.price !== b.price) {
+      return a.price - b.price;
+    }
+
+    return a.variant_value.localeCompare(b.variant_value, undefined, { sensitivity: 'base' });
+  });
+};
+
+const VARIANT_TYPE_LABELS: Record<ItemVariant['variant_type'], string> = {
+  weight: 'Weight',
+  pcs: 'Pieces',
+  price: 'Price',
+  flavor: 'Flavor',
+  size: 'Size',
+};
+
+type RawInventoryItem = Omit<InventoryItem, 'item_variants'> & {
+  item_variants: ItemVariant[] | null;
+};
 
 export default function UserDashboard() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -23,6 +78,13 @@ export default function UserDashboard() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'inventory_items' },
+        () => {
+          fetchItems();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'item_variants' },
         () => {
           fetchItems();
         }
@@ -40,29 +102,93 @@ export default function UserDashboard() {
     } else {
       const query = searchQuery.toLowerCase();
       setFilteredItems(
-        items.filter(
-          (item) =>
+        items.filter((item) => {
+          const matchesItem =
             item.name.toLowerCase().includes(query) ||
-            item.sku.toLowerCase().includes(query) ||
             (item.category && item.category.toLowerCase().includes(query)) ||
-            (item.description && item.description.toLowerCase().includes(query)) ||
-            (typeof item.price === 'number' && item.price.toString().includes(query))
-        )
+            (item.description && item.description.toLowerCase().includes(query));
+
+          const matchesVariant = item.item_variants.some((variant) => {
+            const value = variant.variant_value?.toLowerCase() || '';
+            const sku = variant.sku?.toLowerCase() || '';
+            const type = variant.variant_type?.toLowerCase() || '';
+
+            return (
+              value.includes(query) ||
+              sku.includes(query) ||
+              type.includes(query) ||
+              variant.price.toString().includes(query) ||
+              variant.quantity.toString().includes(query)
+            );
+          });
+
+          const matchesSinglePrice = !item.has_variants
+            ? item.price.toString().includes(query) || item.quantity.toString().includes(query)
+            : false;
+
+          return matchesItem || matchesVariant || matchesSinglePrice;
+        })
       );
     }
   }, [searchQuery, items]);
+
+  useEffect(() => {
+    setSelectedVariants((prev) => {
+      let changed = false;
+      const next: Record<string, string> = { ...prev };
+      const itemIds = new Set(items.map((item) => item.id));
+
+      Object.keys(next).forEach((itemId) => {
+        if (!itemIds.has(itemId)) {
+          delete next[itemId];
+          changed = true;
+        }
+      });
+
+      items.forEach((item) => {
+        const sorted = sortVariants(item.item_variants);
+
+        if (sorted.length === 0) {
+          if (next[item.id]) {
+            delete next[item.id];
+            changed = true;
+          }
+          return;
+        }
+
+        const current = next[item.id];
+        const exists = current ? sorted.some((variant) => variant.id === current) : false;
+
+        if (!exists) {
+          next[item.id] = sorted[0].id;
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [items]);
 
   const fetchItems = async () => {
     try {
       const { data, error } = await supabase
         .from('inventory_items')
-        .select('*')
-        .order('name', { ascending: true });
+        .select(
+          'id, name, description, category, is_visible, has_variants, price, quantity, item_variants(*)'
+        )
+        .order('name', { ascending: true })
+        .order('variant_value', { referencedTable: 'item_variants', ascending: true });
 
-  if (error) throw error;
-  const visibleItems = (data || []).filter((item) => item.is_visible);
-  setItems(visibleItems);
-  setFilteredItems(visibleItems);
+      if (error) throw error;
+
+      const normalizedItems = ((data || []) as RawInventoryItem[]).map((item) => ({
+        ...item,
+        item_variants: Array.isArray(item.item_variants) ? item.item_variants : [],
+      }));
+
+      const visibleItems = normalizedItems.filter((item) => item.is_visible);
+      setItems(visibleItems);
+      setFilteredItems(visibleItems);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -74,13 +200,67 @@ export default function UserDashboard() {
     }
   };
 
-  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  const handleVariantSelect = (itemId: string, variantId: string) => {
+    setSelectedVariants((prev) => ({ ...prev, [itemId]: variantId }));
+  };
+
+  const getVariantsForItem = (item: InventoryItem) => {
+    if (!item.has_variants) {
+      return { sortedVariants: [], selectedVariant: null };
+    }
+
+    const sortedVariants = sortVariants(item.item_variants);
+    const currentId = selectedVariants[item.id];
+    const selectedVariant =
+      (currentId && sortedVariants.find((variant) => variant.id === currentId)) ||
+      sortedVariants[0] ||
+      null;
+
+    return { sortedVariants, selectedVariant };
+  };
+
+  const totalQuantity = useMemo(
+    () =>
+      items.reduce((sum, item) => {
+        if (!item.has_variants) {
+          return sum + (item.quantity ?? 0);
+        }
+
+        return (
+          sum +
+          item.item_variants.reduce(
+            (variantSum, variant) => variantSum + variant.quantity,
+            0
+          )
+        );
+      }, 0),
+    [items]
+  );
+
   const formatCurrency = (value: number | null | undefined) =>
     new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
     }).format(value ?? 0);
-  const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean)));
+
+  const formatVariantTimestamp = (timestamp?: string | null) => {
+    if (!timestamp) {
+      return '—';
+    }
+
+    const utcDate = new Date(timestamp);
+    if (Number.isNaN(utcDate.getTime())) {
+      return '—';
+    }
+
+    const istDate = new Date(utcDate.getTime() + 5.5 * 60 * 60 * 1000);
+    return format(istDate, 'MMM d, yyyy • h:mm a');
+  };
+
+  const categories = useMemo(
+    () => Array.from(new Set(items.map((i) => i.category).filter(Boolean))),
+    [items]
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,7 +288,7 @@ export default function UserDashboard() {
           </Card>
         </div>
 
-         <Card className="mb-6">
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>Search Inventory</CardTitle>
           </CardHeader>
@@ -117,7 +297,7 @@ export default function UserDashboard() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none" />
               <Input
                 type="text"
-                placeholder="Search by name, SKU, category, or description..."
+                placeholder="Search by item, variant, SKU, category, or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -146,62 +326,115 @@ export default function UserDashboard() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredItems.map((item) => (
-              <Card key={item.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg mb-1">{item.name}</CardTitle>
-                      <code className="text-xs bg-muted px-2 py-1 rounded">
-                        {item.sku}
-                      </code>
-                    </div>
-                    {item.category && (
-                      <Badge variant="secondary" className="ml-2">
-                        {item.category}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {item.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {item.description}
-                    </p>
-                  )}
+            {filteredItems.map((item) => {
+              const { sortedVariants, selectedVariant } = getVariantsForItem(item);
+              const isVariantBased = item.has_variants;
+              const priceToDisplay = isVariantBased
+                ? selectedVariant?.price ?? null
+                : item.price ?? null;
+              const quantityToDisplay = isVariantBased
+                ? selectedVariant?.quantity ?? null
+                : item.quantity ?? null;
+              const skuLabel = isVariantBased
+                ? selectedVariant?.sku
+                : 'SKU not applicable';
+              const lastUpdatedDisplay = isVariantBased
+                ? selectedVariant?.last_updated ?? null
+                : null;
 
-                  <div className="flex flex-wrap items-start justify-between gap-4 pt-2 border-t">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Available Quantity
-                      </p>
-                      <Badge
-                        variant={item.quantity === 0 ? 'destructive' : 'default'}
-                        className="text-primary-foreground px-3"
-                      >
-                        {item.quantity}
-                      </Badge>
+              return (
+                <Card key={item.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <CardTitle className="text-lg">{item.name}</CardTitle>
+                      {isVariantBased && sortedVariants.length > 0 ? (
+                        <Select
+                          value={selectedVariant?.id ?? sortedVariants[0].id}
+                          onValueChange={(value) => handleVariantSelect(item.id, value)}
+                          aria-label={`Select variant for ${item.name}`}
+                        >
+                          <SelectTrigger className="h-8 min-w-[6rem] w-auto text-sm">
+                            <SelectValue placeholder="Variant" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sortedVariants.map((variant) => (
+                              <SelectItem key={variant.id} value={variant.id}>
+                                {VARIANT_TYPE_LABELS[variant.variant_type]
+                                  ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
+                                  : variant.variant_value}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : isVariantBased ? (
+                        <Badge variant="outline" className="text-xs font-medium">
+                          No variants yet
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs font-medium">
+                          No Variant
+                        </Badge>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Price</p>
-                      <p className="text-sm font-semibold">
-                        {formatCurrency(item.price)}
-                      </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                      {skuLabel ? (
+                        <code className="bg-muted px-2 py-1 rounded">
+                          {skuLabel}
+                        </code>
+                      ) : (
+                        <span className="text-muted-foreground">SKU unavailable</span>
+                      )}
+                      {item.category && (
+                        <Badge variant="secondary">{item.category}</Badge>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Last Updated
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {item.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {item.description}
                       </p>
-                      <p className="text-xs font-medium">
-                        {item.last_updated
-                          ? format(new Date(item.last_updated), 'MMM d, yyyy • h:mm a')
-                          : '—'}
-                      </p>
+                    )}
+
+                    {isVariantBased && selectedVariant && (
+                      <div className="text-xs text-muted-foreground">
+                        Variant Type: {VARIANT_TYPE_LABELS[selectedVariant.variant_type]}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap items-start justify-between gap-4 pt-2 border-t">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Available Quantity</p>
+                        <Badge
+                          variant={
+                            quantityToDisplay !== null && quantityToDisplay === 0
+                              ? 'destructive'
+                              : 'default'
+                          }
+                          className="px-3"
+                        >
+                          {quantityToDisplay ?? '—'}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Price</p>
+                        <p className="text-sm font-semibold">
+                          {priceToDisplay !== null ? formatCurrency(priceToDisplay) : '—'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
+                        <p className="text-xs font-medium">
+                          {isVariantBased && lastUpdatedDisplay
+                            ? formatVariantTimestamp(lastUpdatedDisplay)
+                            : '—'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

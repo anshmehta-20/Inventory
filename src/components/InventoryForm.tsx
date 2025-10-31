@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -28,12 +27,26 @@ import { Switch } from '@/components/ui/switch';
 
 const inventorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  description: z.string().default(''),
-  quantity: z.coerce.number().min(0, 'Quantity must be 0 or greater'),
-  price: z.coerce.number().min(0, 'Price must be 0 or greater'),
-  sku: z.string().min(1, 'SKU is required'),
-  category: z.string().nullable().default(null),
+  description: z
+    .string()
+    .max(1000, 'Description must be less than 1000 characters')
+    .optional()
+    .or(z.literal('')),
+  category: z
+    .string()
+    .max(120, 'Category name must be less than 120 characters')
+    .nullable()
+    .optional(),
   is_visible: z.boolean().default(true),
+  has_variants: z.boolean().default(false),
+  price: z.coerce
+    .number({ invalid_type_error: 'Price is required' })
+    .min(0, 'Price cannot be negative')
+    .default(0),
+  quantity: z.coerce
+    .number({ invalid_type_error: 'Quantity is required' })
+    .min(0, 'Quantity cannot be negative')
+    .default(0),
 });
 
 type InventoryFormData = z.infer<typeof inventorySchema>;
@@ -59,11 +72,11 @@ export default function InventoryForm({
     defaultValues: {
       name: '',
       description: '',
-      quantity: 0,
-      price: 0,
-      sku: '',
       category: null,
       is_visible: true,
+      has_variants: false,
+      price: 0,
+      quantity: 0,
     },
   });
 
@@ -73,33 +86,42 @@ export default function InventoryForm({
       form.reset({
         name: item.name,
         description: item.description ?? '',
-        quantity: item.quantity,
-        price: item.price ?? 0,
-        sku: item.sku,
         category: item.category ?? null,
         is_visible: item.is_visible,
+        has_variants: item.has_variants,
+        price: item.price ?? 0,
+        quantity: item.quantity ?? 0,
       });
     } else {
       form.reset({
         name: '',
         description: '',
-        quantity: 0,
-        price: 0,
-        sku: '',
         category: null,
         is_visible: true,
+        has_variants: false,
+        price: 0,
+        quantity: 0,
       });
     }
   }, [item, form]);
+
+  const watchHasVariants = form.watch('has_variants');
 
   const onSubmit = async (data: InventoryFormData) => {
     try {
       setLoading(true);
 
-      // Convert empty string category to null
+      const descriptionValue = data.description?.trim() ?? '';
+      const categoryValue = typeof data.category === 'string' ? data.category.trim() : '';
+
       const submitData = {
-        ...data,
-        category: !data.category || data.category.trim() === '' ? null : data.category,
+        name: data.name,
+        description: descriptionValue === '' ? null : descriptionValue,
+        category: categoryValue === '' ? null : categoryValue,
+        is_visible: data.is_visible,
+        has_variants: data.has_variants,
+        price: data.has_variants ? 0 : data.price,
+        quantity: data.has_variants ? 0 : data.quantity,
       };
 
       if (item) {
@@ -165,58 +187,6 @@ export default function InventoryForm({
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="sku"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>SKU</FormLabel>
-                  <FormControl>
-                    <Input placeholder="SKU-001" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="1"
-                        min="0"
-                        inputMode="numeric"
-                        placeholder="0"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
               name="category"
@@ -225,7 +195,7 @@ export default function InventoryForm({
                   <FormLabel>Category</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Sweets"
+                      placeholder="e.g., Sweets"
                       {...field}
                       value={field.value ?? ''}
                     />
@@ -274,6 +244,76 @@ export default function InventoryForm({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="has_variants"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-[var(--radius)] border border-border bg-card px-4 py-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Manage with variants</FormLabel>
+                    <FormDescription>
+                      Enable to track multiple sizes, weights, or flavors for this item.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      aria-label="Toggle variant-based inventory"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price (INR)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        disabled={watchHasVariants}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Used when variants are disabled.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        disabled={watchHasVariants}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Track available stock for single-variant items.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button

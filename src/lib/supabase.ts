@@ -18,12 +18,23 @@ export interface Profile {
 export interface InventoryItem {
   id: string;
   name: string;
-  description: string;
-  sku: string;
-  category: string;
+  description: string | null;
+  category: string | null;
+  has_variants: boolean;
+  price: number;
   quantity: number;
-  price: number | null;
   is_visible: boolean;
+  item_variants: ItemVariant[];
+}
+
+export interface ItemVariant {
+  id: string;
+  item_id: string;
+  sku: string;
+  variant_type: 'weight' | 'pcs' | 'price' | 'flavor' | 'size';
+  variant_value: string;
+  price: number;
+  quantity: number;
   last_updated: string;
   updated_by: string | null;
 }
