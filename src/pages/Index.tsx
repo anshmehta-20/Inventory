@@ -68,13 +68,45 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [storeStatus, setStoreStatus] = useState<boolean | null>(null);
+  const [storeStatusLoading, setStoreStatusLoading] = useState(true);
   const { toast } = useToast();
+
+  const fetchStoreStatus = async () => {
+    setStoreStatusLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('store_status')
+        .select('is_open')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setStoreStatus(data[0].is_open);
+      } else {
+        setStoreStatus(true);
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load store status',
+      });
+      setStoreStatus(true);
+    } finally {
+      setStoreStatusLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchItems();
+    fetchStoreStatus();
 
-    const subscription = supabase
-      .channel('inventory_changes')
+    const inventoryChannel = supabase
+      .channel('inventory_changes_public')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'inventory_items' },
@@ -91,8 +123,23 @@ export default function UserDashboard() {
       )
       .subscribe();
 
+    const storeChannel = supabase
+      .channel('store_status_public')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'store_status' },
+        (payload) => {
+          const next = (payload.new as { is_open?: boolean }) || {};
+          if (typeof next.is_open === 'boolean') {
+            setStoreStatus(next.is_open);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      subscription.unsubscribe();
+      inventoryChannel.unsubscribe();
+      storeChannel.unsubscribe();
     };
   }, []);
 
@@ -227,24 +274,6 @@ export default function UserDashboard() {
     return { sortedVariants, selectedVariant };
   };
 
-  const totalQuantity = useMemo(
-    () =>
-      items.reduce((sum, item) => {
-        if (!item.has_variants) {
-          return sum + (item.quantity ?? 0);
-        }
-
-        return (
-          sum +
-          item.item_variants.reduce(
-            (variantSum, variant) => variantSum + variant.quantity,
-            0
-          )
-        );
-      }, 0),
-    [items]
-  );
-
   const formatCurrency = (value: number | null | undefined) =>
     new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -277,15 +306,33 @@ export default function UserDashboard() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid gap-6 md:grid-cols-3 mb-8">
           <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Total Items</CardDescription>
-              <CardTitle className="text-3xl">{items.length}</CardTitle>
+            <CardHeader className="pb-3 space-y-2">
+              <CardDescription>Store Status</CardDescription>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    storeStatus === null || storeStatusLoading
+                      ? 'bg-muted-foreground/50'
+                      : storeStatus
+                      ? 'bg-emerald-500'
+                      : 'bg-destructive'
+                  }`}
+                  aria-hidden="true"
+                />
+                <CardTitle className="text-3xl">
+                  {storeStatus === null || storeStatusLoading
+                    ? '—'
+                    : storeStatus
+                    ? 'Open'
+                    : 'Closed'}
+                </CardTitle>
+              </div>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Total Quantity Available</CardDescription>
-              <CardTitle className="text-3xl">{totalQuantity}</CardTitle>
+              <CardDescription>Total Items</CardDescription>
+              <CardTitle className="text-3xl">{items.length}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
@@ -365,7 +412,7 @@ export default function UserDashboard() {
                             onValueChange={(value) => handleVariantSelect(item.id, value)}
                             aria-label={`Select variant for ${item.name}`}
                           >
-                            <SelectTrigger className="h-7 min-w-[5rem] w-auto rounded-[var(--radius)] text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
+                            <SelectTrigger className="one-shadow h-7 min-w-[5rem] w-auto rounded-[var(--radius)] border border-border text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
                               <SelectValue placeholder="Variant" />
                             </SelectTrigger>
                             <SelectContent>
@@ -381,14 +428,14 @@ export default function UserDashboard() {
                         ) : isVariantBased ? (
                           <Badge
                             variant="outline"
-                            className="text-xs font-medium rounded-[var(--radius)]"
+                            className="one-shadow text-xs font-medium rounded-[var(--radius)]"
                           >
                             No variants yet
                           </Badge>
                         ) : (
                           <Badge
                             variant="outline"
-                            className="text-xs font-medium rounded-[var(--radius)]"
+                            className="one-shadow text-xs font-medium rounded-[var(--radius)]"
                           >
                             No Variant
                           </Badge>
@@ -400,7 +447,7 @@ export default function UserDashboard() {
                         </Badge>
                       )}
                     </div>
-                    <div className="-mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <div className="!mt-0 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {skuLabel ? (
                         <code className="bg-muted px-2 py-1 rounded">
                           {skuLabel}
@@ -424,7 +471,7 @@ export default function UserDashboard() {
                         </div>
                       )}
 
-                    <div className="mt-auto flex flex-wrap items-start justify-between gap-4 border-t pt-2">
+                    <div className="mt-auto flex flex-wrap items-start justify-between gap-4 border-t border-border pt-2">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Available Quantity</p>
                         <Badge

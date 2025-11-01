@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user);
       } else {
         setLoading(false);
       }
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (async () => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user);
         } else {
           setProfile(null);
           setLoading(false);
@@ -48,20 +48,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (sessionUser: User) => {
     try {
       // Check if user is admin by looking up admin_users
       const { data, error } = await supabase
         .from('admin_users')
         .select('user_id')
-        .eq('user_id', userId)
+        .eq('user_id', sessionUser.id)
         .maybeSingle();
 
       if (error) throw error;
       if (data) {
-        setProfile({ id: userId, email: user?.email ?? '', isAdmin: true });
+        setProfile({ id: sessionUser.id, email: sessionUser.email ?? '', isAdmin: true });
       } else {
-        setProfile({ id: userId, email: user?.email ?? '', isAdmin: false });
+        setProfile({ id: sessionUser.id, email: sessionUser.email ?? '', isAdmin: false });
       }
     } catch (error) {
       console.error('Error fetching profile:', error);

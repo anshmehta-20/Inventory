@@ -12,6 +12,7 @@ const ThemeToggle: React.FC = () => {
       size="icon"
       aria-label="Toggle theme"
       onClick={toggleTheme}
+      className="border-border"
     >
       {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </Button>

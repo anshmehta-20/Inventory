@@ -4,16 +4,18 @@ import { Card, CardContent } from '@/components/ui/card';
 const contactDetails = [
   {
     label: 'Address',
-    value: 'Mahavir Nagar, Kandivali West, Mumbai',
+    value:
+      'Shreeji Foods, Shop No. 11, Mahavir Nagar, Panchsheel Garden, Siddhivinayak Nagar, Kandivali West, Mumbai, Maharashtra 400067',
+    href: 'https://www.google.com/maps/search/?api=1&query=Shreeji+Foods%2C+Shop+No.+11%2C+Mahavir+Nagar%2C+Panchsheel+Garden%2C+Siddhivinayak+Nagar%2C+Kandivali+West%2C+Mumbai%2C+Maharashtra+400067',
   },
   {
     label: 'Timings',
     value: 'Open daily from 8:30 AM to 9:30 PM',
   },
   {
-    label: 'Contact',
-    value: 'Add your phone number',
-    muted: true,
+    label: 'Email',
+    value: 'shreejifoods1999@gmail.com',
+    href: 'mailto:shreejifoods1999@gmail.com',
   },
 ];
 
@@ -27,10 +29,10 @@ export default function About() {
             Serving Happiness Since 1999
           </h2>
           <p className="text-lg text-muted-foreground">
-            Since 1999, Shreeji Foods has been serving delicious, fresh, and authentic vegetarian meals to the community of Kandivali West, Mahavir Nagar. We are known for quality, hygiene, and homely taste, and every plate reflects our love for great food.
+            Since 1999, Shreeji Foods has been serving delicious, fresh, and authentic snacks and sweets to the community of Kandivali West, Mahavir Nagar. We are known for quality, hygiene, and homely taste, and every snack reflects our love for great food.
           </p>
           <p className="text-lg text-muted-foreground">
-            From classic Indian snacks to hearty meals, every dish is prepared with care so you enjoy the perfect balance of taste and freshness. Our loyal customers have trusted us for more than two decades, and we work hard to earn that trust every single day.
+            From classic Indian snacks to traditional sweets, giving you the perfect balance of taste and freshness. Our loyal customers have trusted us for more than two decades, and we work hard to earn that trust every single day.
           </p>
           <p className="text-lg text-muted-foreground">
             We believe good food brings people together, and that sense of togetherness guides everything we do.
@@ -44,11 +46,18 @@ export default function About() {
                 <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   {detail.label}
                 </p>
-                <p
-                  className={detail.muted ? 'text-base text-muted-foreground italic' : 'text-base text-foreground'}
-                >
-                  {detail.value}
-                </p>
+                {detail.href ? (
+                  <a
+                    href={detail.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-base text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    {detail.value}
+                  </a>
+                ) : (
+                  <p className="text-base text-foreground">{detail.value}</p>
+                )}
               </div>
             ))}
           </CardContent>
@@ -57,7 +66,7 @@ export default function About() {
         <section className="max-w-3xl space-y-4 rounded-[var(--radius)] border border-dashed border-primary/40 bg-primary/5 p-6">
           <h3 className="text-xl font-semibold text-foreground">Visit Us Soon</h3>
           <p className="text-muted-foreground text-base">
-            Come visit us and experience the taste of tradition and trust at Shreeji Foods. We are proud to serve Mahavir Nagar with fresh vegetarian meals and warm hospitality.
+            Come visit us and experience the taste of tradition and trust at Shreeji Foods. We look forward to serving you and becoming a part of your daily meals and special occasions.
           </p>
         </section>
       </main>

@@ -5,6 +5,22 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -37,7 +53,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Package, Search, MoreVertical } from 'lucide-react';
+import { Plus, Package, Search, MoreVertical, CircleMinus, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import InventoryForm from '@/components/InventoryForm';
 import CategoryForm from '@/components/CategoryForm';
@@ -53,6 +69,11 @@ const VARIANT_TYPE_LABELS: Record<ItemVariant['variant_type'], string> = {
 
 type RawInventoryItem = Omit<InventoryItem, 'item_variants'> & {
   item_variants: ItemVariant[] | null;
+};
+
+type CategoryOption = {
+  id: string;
+  name: string;
 };
 
 const parseNumericValue = (value: string): number | null => {
@@ -107,13 +128,127 @@ export default function AdminDashboard() {
   const [variantDeleteDialogOpen, setVariantDeleteDialogOpen] = useState(false);
   const [variantToDelete, setVariantToDelete] = useState<ItemVariant | null>(null);
   const [variantParentItemName, setVariantParentItemName] = useState<string>('');
+  const [selectedVariantsMap, setSelectedVariantsMap] = useState<Record<string, string>>({});
+  const [storeStatus, setStoreStatus] = useState<boolean | null>(null);
+  const [storeStatusId, setStoreStatusId] = useState<string | null>(null);
+  const [storeStatusLoading, setStoreStatusLoading] = useState(true);
+  const [updatingStoreStatus, setUpdatingStoreStatus] = useState(false);
+  const [removeCategoryOpen, setRemoveCategoryOpen] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<CategoryOption[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [removingCategory, setRemovingCategory] = useState(false);
   const { toast } = useToast();
+
+  const fetchStoreStatus = async () => {
+    setStoreStatusLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('store_status')
+        .select('id, is_open')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setStoreStatusId(data[0].id);
+        setStoreStatus(data[0].is_open);
+      } else {
+        const { data: inserted, error: insertError } = await supabase
+          .from('store_status')
+          .insert({ is_open: true, updated_by: profile?.id ?? null })
+          .select('id, is_open')
+          .single();
+
+        if (insertError) throw insertError;
+
+        if (inserted) {
+          setStoreStatusId(inserted.id);
+          setStoreStatus(inserted.is_open);
+        }
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load store status',
+      });
+    } finally {
+      setStoreStatusLoading(false);
+    }
+  };
+
+  const handleStoreStatusToggle = async (nextState: boolean) => {
+    const previousState = storeStatus ?? false;
+    setStoreStatus(nextState);
+    setUpdatingStoreStatus(true);
+
+    try {
+      if (storeStatusId) {
+        const { error } = await supabase
+          .from('store_status')
+          .update({ is_open: nextState, updated_by: profile?.id ?? null })
+          .eq('id', storeStatusId);
+
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('store_status')
+          .insert({ is_open: nextState, updated_by: profile?.id ?? null })
+          .select('id, is_open')
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setStoreStatusId(data.id);
+          setStoreStatus(data.is_open);
+        }
+      }
+
+      toast({
+        title: 'Store status updated',
+        description: `Store is now ${nextState ? 'open' : 'closed'}.`,
+      });
+    } catch (error: any) {
+      setStoreStatus(previousState);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update store status',
+      });
+    } finally {
+      setUpdatingStoreStatus(false);
+    }
+  };
+
+  const handleVariantSelect = (itemId: string, variantId: string) => {
+    setSelectedVariantsMap((prev) => ({ ...prev, [itemId]: variantId }));
+  };
+
+  const getVariantsForItem = (item: InventoryItem) => {
+    if (!item.has_variants) {
+      return { sortedVariants: [], selectedVariant: null };
+    }
+
+    const sortedVariants = sortVariants(item.item_variants);
+    const currentId = selectedVariantsMap[item.id];
+    const selectedVariant =
+      (currentId && sortedVariants.find((variant) => variant.id === currentId)) ||
+      sortedVariants[0] ||
+      null;
+
+    return { sortedVariants, selectedVariant };
+  };
 
   useEffect(() => {
     fetchItems();
+    fetchStoreStatus();
 
-    const subscription = supabase
-      .channel('inventory_changes')
+    const inventoryChannel = supabase
+      .channel('inventory_changes_admin')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'inventory_items' },
@@ -130,8 +265,26 @@ export default function AdminDashboard() {
       )
       .subscribe();
 
+    const storeChannel = supabase
+      .channel('store_status_admin')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'store_status' },
+        (payload) => {
+          const next = (payload.new as { id?: string; is_open?: boolean }) || {};
+          if (typeof next.is_open === 'boolean') {
+            setStoreStatus(next.is_open);
+          }
+          if (next.id) {
+            setStoreStatusId(next.id);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      subscription.unsubscribe();
+      inventoryChannel.unsubscribe();
+      storeChannel.unsubscribe();
     };
   }, []);
 
@@ -178,6 +331,91 @@ export default function AdminDashboard() {
       );
     }
   }, [searchQuery, items]);
+
+  useEffect(() => {
+    setSelectedVariantsMap((prev) => {
+      let hasChanges = false;
+      const next: Record<string, string> = { ...prev };
+      const itemIds = new Set(items.map((item) => item.id));
+
+      Object.keys(next).forEach((itemId) => {
+        if (!itemIds.has(itemId)) {
+          delete next[itemId];
+          hasChanges = true;
+        }
+      });
+
+      items.forEach((item) => {
+        if (!item.has_variants) {
+          if (next[item.id]) {
+            delete next[item.id];
+            hasChanges = true;
+          }
+          return;
+        }
+
+        const sorted = sortVariants(item.item_variants);
+
+        if (sorted.length === 0) {
+          if (next[item.id]) {
+            delete next[item.id];
+            hasChanges = true;
+          }
+          return;
+        }
+
+        const current = next[item.id];
+        const exists = current ? sorted.some((variant) => variant.id === current) : false;
+
+        if (!exists) {
+          next[item.id] = sorted[0].id;
+          hasChanges = true;
+        }
+      });
+
+      return hasChanges ? next : prev;
+    });
+  }, [items]);
+
+  useEffect(() => {
+    if (!removeCategoryOpen) {
+      setAvailableCategories([]);
+      setSelectedCategoryId('');
+      setCategoriesLoading(false);
+      setRemovingCategory(false);
+      return;
+    }
+
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('category')
+          .select('id, name')
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        const categoryList = (data ?? []) as CategoryOption[];
+        setAvailableCategories(categoryList);
+        if (categoryList.length > 0) {
+          setSelectedCategoryId(categoryList[0].id);
+        } else {
+          setSelectedCategoryId('');
+        }
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'Failed to load categories.',
+        });
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [removeCategoryOpen, toast]);
 
   const fetchItems = async () => {
     try {
@@ -315,6 +553,50 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleRemoveCategory = async () => {
+    if (!selectedCategoryId) {
+      toast({
+        variant: 'destructive',
+        title: 'Select a category',
+        description: 'Choose a category to remove.',
+      });
+      return;
+    }
+
+    const categoryDetails = availableCategories.find(
+      (category) => category.id === selectedCategoryId
+    );
+
+    try {
+      setRemovingCategory(true);
+
+      const { error } = await supabase
+        .from('category')
+        .delete()
+        .eq('id', selectedCategoryId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Category removed',
+        description: categoryDetails
+          ? `"${categoryDetails.name}" has been deleted.`
+          : 'Category deleted successfully.',
+      });
+
+      setRemoveCategoryOpen(false);
+      await fetchItems();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to remove category.',
+      });
+    } finally {
+      setRemovingCategory(false);
+    }
+  };
+
   const handleVariantFormOpenChange = (open: boolean) => {
     setVariantFormOpen(open);
     if (!open) {
@@ -376,7 +658,35 @@ export default function AdminDashboard() {
       />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <Card>
+            <CardHeader className="pb-3 space-y-3">
+              <CardDescription>Store Status</CardDescription>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle
+                  className={`text-3xl transition-colors ${
+                    storeStatus === null
+                      ? 'text-foreground'
+                      : storeStatus
+                      ? 'text-emerald-500'
+                      : 'text-destructive'
+                  }`}
+                >
+                  {storeStatus === null ? '—' : storeStatus ? 'Open' : 'Closed'}
+                </CardTitle>
+                <Switch
+                  size="default"
+                  checked={Boolean(storeStatus)}
+                  onCheckedChange={handleStoreStatusToggle}
+                  disabled={storeStatusLoading || updatingStoreStatus}
+                  aria-label="Toggle store status"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Controls what customers see on the storefront.
+              </p>
+            </CardHeader>
+          </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Total Items</CardDescription>
@@ -412,6 +722,7 @@ export default function AdminDashboard() {
                     <Button
                       variant="outline"
                       size="icon"
+                      className="border-border"
                       aria-label="Open quick actions"
                     >
                       <MoreVertical className="w-4 h-4" />
@@ -420,9 +731,15 @@ export default function AdminDashboard() {
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
                     <DropdownMenuItem onSelect={() => setCategoryFormOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
                       Add Category
                     </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setRemoveCategoryOpen(true)}>
+                      <CircleMinus className="mr-2 h-4 w-4" />
+                      Remove Category
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => fetchItems()}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
                       Refresh Data
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -432,7 +749,7 @@ export default function AdminDashboard() {
                     setSelectedItem(null);
                     setFormOpen(true);
                   }}
-                  className="w-full rounded-[var(--radius)] sm:w-auto"
+                  className="w-full rounded-[var(--radius)] border border-border sm:w-auto"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
@@ -468,7 +785,7 @@ export default function AdminDashboard() {
                 </p>
                 <Button
                   variant="outline"
-                  className="mt-4"
+                  className="mt-4 border-border"
                   onClick={() => {
                     setSelectedItem(null);
                     setFormOpen(true);
@@ -496,17 +813,23 @@ export default function AdminDashboard() {
                   </TableHeader>
                   <TableBody>
                     {filteredItems.map((item) => {
-                      const sortedVariants = item.has_variants ? sortVariants(item.item_variants) : [];
-                      const defaultVariant = sortedVariants[0];
+                      const { sortedVariants, selectedVariant: activeVariant } = getVariantsForItem(item);
                       const displayPrice = item.has_variants
-                        ? defaultVariant?.price ?? null
+                        ? activeVariant?.price ?? null
                         : item.price ?? null;
                       const displayQuantity = item.has_variants
-                        ? defaultVariant?.quantity ?? null
+                        ? activeVariant?.quantity ?? null
                         : item.quantity ?? null;
                       const lastUpdatedValue = item.has_variants
-                        ? defaultVariant?.last_updated ?? null
+                        ? activeVariant?.last_updated ?? null
                         : item.last_updated;
+                      const skuLabel = item.has_variants
+                        ? activeVariant?.sku ?? null
+                        : item.sku ?? null;
+                      const variantMeta =
+                        item.has_variants && activeVariant
+                          ? `${activeVariant.variant_value} • ${VARIANT_TYPE_LABELS[activeVariant.variant_type]}`
+                          : null;
 
                       return (
                         <TableRow
@@ -514,10 +837,54 @@ export default function AdminDashboard() {
                           className={!item.is_visible ? 'bg-muted/40' : undefined}
                         >
                           <TableCell>
-                            <div>
-                              <div className="font-medium">{item.name}</div>
+                            <div className="flex flex-col gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium">{item.name}</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                {item.has_variants ? (
+                                  sortedVariants.length > 0 ? (
+                                    <Select
+                                      value={activeVariant?.id ?? sortedVariants[0].id}
+                                      onValueChange={(value) => handleVariantSelect(item.id, value)}
+                                      aria-label={`Select variant for ${item.name}`}
+                                    >
+                                      <SelectTrigger className="one-shadow h-7 min-w-[5rem] w-auto rounded-[var(--radius)] border border-border text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
+                                        <SelectValue placeholder="Variant" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {sortedVariants.map((variant) => {
+                                          const variantLabel = VARIANT_TYPE_LABELS[variant.variant_type]
+                                            ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
+                                            : variant.variant_value;
+
+                                          return (
+                                            <SelectItem key={variant.id} value={variant.id}>
+                                              {variantLabel}
+                                            </SelectItem>
+                                          );
+                                        })}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Badge
+                                      variant="outline"
+                                      className="one-shadow text-xs font-medium rounded-[var(--radius)]"
+                                    >
+                                      No variants yet
+                                    </Badge>
+                                  )
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="one-shadow text-xs font-medium rounded-[var(--radius)]"
+                                  >
+                                    No Variant
+                                  </Badge>
+                                )}
+                              </div>
                               {item.description && (
-                                <div className="text-xs text-muted-foreground mt-1">
+                                <div className="text-xs text-muted-foreground">
                                   {item.description}
                                 </div>
                               )}
@@ -532,30 +899,27 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell className="text-center">
                             {item.has_variants ? (
-                              defaultVariant ? (
+                              sortedVariants.length > 0 && activeVariant ? (
                                 <div className="space-y-1">
-                                  {defaultVariant.sku ? (
-                                    <code className="text-xs bg-muted px-2 py-1 rounded">
-                                      {defaultVariant.sku}
-                                    </code>
+                                  {skuLabel ? (
+                                    <code className="text-xs bg-muted px-2 py-1 rounded">{skuLabel}</code>
                                   ) : (
                                     <span className="text-sm text-muted-foreground">No SKU</span>
                                   )}
-                                  <span className="block text-xs text-muted-foreground">
-                                    {defaultVariant.variant_value} • {VARIANT_TYPE_LABELS[defaultVariant.variant_type]}
-                                  </span>
+                                  {variantMeta && (
+                                    <span className="block text-xs text-muted-foreground">{variantMeta}</span>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="text-muted-foreground text-sm">No variants yet</span>
                               )
                             ) : (
                               <div className="space-y-1">
-                                {item.sku ? (
-                                  <code className="text-xs bg-muted px-2 py-1 rounded">{item.sku}</code>
+                                {skuLabel ? (
+                                  <code className="text-xs bg-muted px-2 py-1 rounded">{skuLabel}</code>
                                 ) : (
                                   <span className="text-sm text-muted-foreground">SKU not set</span>
                                 )}
-                                
                               </div>
                             )}
                           </TableCell>
@@ -583,6 +947,7 @@ export default function AdminDashboard() {
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
                               <Switch
+                                size="sm"
                                 checked={item.is_visible}
                                 onCheckedChange={(checked) => handleVisibilityToggle(item, checked)}
                                 aria-label={`Toggle visibility for ${item.name}`}
@@ -601,7 +966,7 @@ export default function AdminDashboard() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="w-full rounded-[var(--radius)] sm:w-auto"
+                                  className="w-full rounded-[var(--radius)] border-border sm:w-auto"
                                 >
                                   Manage
                                 </Button>
@@ -681,6 +1046,69 @@ export default function AdminDashboard() {
         onOpenChange={setCategoryFormOpen}
         onSuccess={fetchItems}
       />
+
+      <Dialog open={removeCategoryOpen} onOpenChange={setRemoveCategoryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Category</DialogTitle>
+            <DialogDescription>
+              Select a category to delete. Any items assigned to it will have their category cleared.
+            </DialogDescription>
+          </DialogHeader>
+          {categoriesLoading ? (
+            <div className="py-4 text-sm text-muted-foreground">Loading categories...</div>
+          ) : availableCategories.length === 0 ? (
+            <div className="py-4 text-sm text-muted-foreground">
+              No categories available to remove.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="category-to-remove" className="text-sm font-medium">
+                Category
+              </Label>
+              <Select
+                value={selectedCategoryId || undefined}
+                onValueChange={setSelectedCategoryId}
+              >
+                <SelectTrigger
+                  id="category-to-remove"
+                  className="border border-border"
+                  disabled={removingCategory}
+                >
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <DialogFooter className="pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setRemoveCategoryOpen(false)}
+              disabled={removingCategory}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRemoveCategory}
+              disabled={
+                removingCategory ||
+                !selectedCategoryId ||
+                availableCategories.length === 0
+              }
+            >
+              {removingCategory ? 'Removing...' : 'Remove'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <VariantForm
         open={variantFormOpen}

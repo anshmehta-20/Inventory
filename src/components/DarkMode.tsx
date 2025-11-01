@@ -48,37 +48,41 @@ export default function DarkMode({ children, strict = true }: DarkModeProps) {
       const style = document.createElement('style');
       style.id = 'darkmode-strict-styles';
       style.textContent = `
-        .dark * {
-          border-color: hsl(var(--border));
-        }
-        
         .dark body {
           background-color: hsl(var(--background)) !important;
           color: hsl(var(--foreground)) !important;
         }
-        
-        .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6,
-        .dark p, .dark label {
+
+        .dark h1,
+        .dark h2,
+        .dark h3,
+        .dark h4,
+        .dark h5,
+        .dark h6,
+        .dark p,
+        .dark label {
           color: hsl(var(--foreground));
         }
-        
-        .dark input, .dark textarea, .dark select {
+
+        .dark input,
+        .dark textarea,
+        .dark select {
           background-color: hsl(var(--background)) !important;
           color: hsl(var(--foreground)) !important;
           border-color: hsl(var(--border)) !important;
         }
-        
+
         .dark input::placeholder,
         .dark textarea::placeholder,
         .dark select::placeholder {
           color: hsl(var(--muted-foreground)) !important;
         }
-        
+
         .dark code {
           background-color: hsl(var(--muted)) !important;
           color: hsl(var(--foreground)) !important;
         }
-        
+
         .dark [role="dialog"],
         .dark [role="alertdialog"] {
           background-color: hsl(var(--background)) !important;

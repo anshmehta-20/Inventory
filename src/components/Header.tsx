@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import ThemeToggle from "@/components/ui/theme-toggle";
 import {
   Sheet,
@@ -55,7 +56,7 @@ export default function Header({
           <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="rounded-lg">
+              <Button variant="outline" size="icon" className="rounded-lg border-border">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Open navigation</span>
               </Button>
@@ -66,11 +67,18 @@ export default function Header({
             >
               <SheetPanelHeader>
                 <SheetTitle>Shreeji Foods</SheetTitle>
-                <p className="text-sm text-muted-foreground">
-                  {profile
-                    ? `Signed in as ${profile.email}`
-                    : "Serving Mahavir Nagar since 1999"}
-                </p>
+                {profile ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-muted-foreground">Signed in as</p>
+                    <Badge className="w-fit bg-primary text-primary-foreground hover:bg-primary">
+                      {profile.email}
+                    </Badge>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Serving Mahavir Nagar since 1999
+                  </p>
+                )}
               </SheetPanelHeader>
 
               <nav className="flex flex-col gap-2">

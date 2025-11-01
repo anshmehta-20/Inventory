@@ -120,4 +120,20 @@
       0 8px 10px -1px hsl(0 0 0 / 0.3);
     --shadow-2xl: 0 0.1rem 0.5rem 0 hsl(0 0 0 / 0.75);
   }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  .one-shadow {
+    box-shadow: var(--shadow-x) var(--shadow-y) var(--shadow-blur) var(--shadow-spread)
+      hsl(var(--shadow-color) / var(--shadow-opacity)) !important;
+  }
 }

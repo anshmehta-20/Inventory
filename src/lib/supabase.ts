@@ -41,3 +41,10 @@ export interface ItemVariant {
   last_updated: string;
   updated_by: string | null;
 }
+
+export interface StoreStatus {
+  id: string;
+  is_open: boolean;
+  updated_at: string | null;
+  updated_by: string | null;
+}
