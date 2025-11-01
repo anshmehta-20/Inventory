@@ -19,7 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,7 +52,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Package, Search, MoreVertical, CircleMinus, RefreshCw } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Plus, Package, Search, MoreVertical, CircleMinus, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import InventoryForm from '@/components/InventoryForm';
 import CategoryForm from '@/components/CategoryForm';
@@ -138,6 +146,9 @@ export default function AdminDashboard() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [removingCategory, setRemovingCategory] = useState(false);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const [categoryCount, setCategoryCount] = useState(0);
+  const [categoryCountLoading, setCategoryCountLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchStoreStatus = async () => {
@@ -177,6 +188,33 @@ export default function AdminDashboard() {
       });
     } finally {
       setStoreStatusLoading(false);
+    }
+  };
+
+  const fetchCategoryCount = async (withLoading = false) => {
+    if (withLoading) {
+      setCategoryCountLoading(true);
+    }
+
+    try {
+      const { count, error } = await supabase
+        .from('category')
+        .select('id', { count: 'exact', head: true });
+
+      if (error) throw error;
+
+      setCategoryCount(count ?? 0);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load category count.',
+      });
+    } finally {
+      if (withLoading) {
+        setCategoryCountLoading(false);
+      }
     }
   };
 
@@ -246,6 +284,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchItems();
     fetchStoreStatus();
+    fetchCategoryCount(true);
 
     const inventoryChannel = supabase
       .channel('inventory_changes_admin')
@@ -261,6 +300,17 @@ export default function AdminDashboard() {
         { event: '*', schema: 'public', table: 'item_variants' },
         () => {
           fetchItems();
+        }
+      )
+      .subscribe();
+
+    const categoryChannel = supabase
+      .channel('category_changes_admin')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'category' },
+        () => {
+          fetchCategoryCount();
         }
       )
       .subscribe();
@@ -284,6 +334,7 @@ export default function AdminDashboard() {
 
     return () => {
       inventoryChannel.unsubscribe();
+      categoryChannel.unsubscribe();
       storeChannel.unsubscribe();
     };
   }, []);
@@ -383,6 +434,7 @@ export default function AdminDashboard() {
       setSelectedCategoryId('');
       setCategoriesLoading(false);
       setRemovingCategory(false);
+      setCategoryPickerOpen(false);
       return;
     }
 
@@ -416,6 +468,25 @@ export default function AdminDashboard() {
 
     fetchCategories();
   }, [removeCategoryOpen, toast]);
+
+  useEffect(() => {
+    if (availableCategories.length === 0) {
+      if (selectedCategoryId !== '') {
+        setSelectedCategoryId('');
+      }
+      return;
+    }
+
+    const exists = availableCategories.some((category) => category.id === selectedCategoryId);
+    if (!exists) {
+      setSelectedCategoryId(availableCategories[0].id);
+    }
+  }, [availableCategories, selectedCategoryId]);
+
+  const selectedCategory = useMemo(
+    () => availableCategories.find((category) => category.id === selectedCategoryId) ?? null,
+    [availableCategories, selectedCategoryId]
+  );
 
   const fetchItems = async () => {
     try {
@@ -563,9 +634,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    const categoryDetails = availableCategories.find(
-      (category) => category.id === selectedCategoryId
-    );
+    const categoryDetails = selectedCategory;
 
     try {
       setRemovingCategory(true);
@@ -586,6 +655,7 @@ export default function AdminDashboard() {
 
       setRemoveCategoryOpen(false);
       await fetchItems();
+      await fetchCategoryCount();
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -682,28 +752,25 @@ export default function AdminDashboard() {
                   aria-label="Toggle store status"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Controls what customers see on the storefront.
-              </p>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Total Items</CardDescription>
-              <CardTitle className="text-3xl">{items.length}</CardTitle>
+              <CardTitle className="text-3xl">{loading ? '—' : items.length}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Total Quantity</CardDescription>
-              <CardTitle className="text-3xl">{totalQuantity}</CardTitle>
+              <CardTitle className="text-3xl">{loading ? '—' : totalQuantity}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Categories</CardDescription>
               <CardTitle className="text-3xl">
-                {new Set(items.map((i) => i.category).filter(Boolean)).size}
+                {categoryCountLoading ? '—' : categoryCount}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -1044,7 +1111,10 @@ export default function AdminDashboard() {
       <CategoryForm
         open={categoryFormOpen}
         onOpenChange={setCategoryFormOpen}
-        onSuccess={fetchItems}
+        onSuccess={() => {
+          void fetchItems();
+          void fetchCategoryCount();
+        }}
       />
 
       <Dialog open={removeCategoryOpen} onOpenChange={setRemoveCategoryOpen}>
@@ -1062,29 +1132,47 @@ export default function AdminDashboard() {
               No categories available to remove.
             </div>
           ) : (
-            <div className="space-y-2">
-              <Label htmlFor="category-to-remove" className="text-sm font-medium">
-                Category
-              </Label>
-              <Select
-                value={selectedCategoryId || undefined}
-                onValueChange={setSelectedCategoryId}
-              >
-                <SelectTrigger
-                  id="category-to-remove"
-                  className="border border-border"
-                  disabled={removingCategory}
-                >
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Category</p>
+              <Popover open={categoryPickerOpen} onOpenChange={setCategoryPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={categoryPickerOpen}
+                    className="w-full justify-between border border-border"
+                    disabled={removingCategory}
+                  >
+                    {selectedCategory ? selectedCategory.name : 'Select a category'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[280px]">
+                  <Command>
+                    <CommandInput placeholder="Search categories..." />
+                    <CommandList>
+                      <CommandEmpty>No categories found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableCategories.map((category) => (
+                          <CommandItem
+                            key={category.id}
+                            value={category.name}
+                            onSelect={() => {
+                              setSelectedCategoryId(category.id);
+                              setCategoryPickerOpen(false);
+                            }}
+                          >
+                            {category.name}
+                            {selectedCategoryId === category.id ? (
+                              <Check className="ml-auto h-4 w-4" />
+                            ) : null}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
           <DialogFooter className="pt-4">

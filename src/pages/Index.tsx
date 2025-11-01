@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase, InventoryItem, ItemVariant } from '@/lib/supabase';
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,6 +70,8 @@ export default function UserDashboard() {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [storeStatus, setStoreStatus] = useState<boolean | null>(null);
   const [storeStatusLoading, setStoreStatusLoading] = useState(true);
+  const [categoryCount, setCategoryCount] = useState(0);
+  const [categoryCountLoading, setCategoryCountLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchStoreStatus = async () => {
@@ -101,9 +103,37 @@ export default function UserDashboard() {
     }
   };
 
+  const fetchCategoryCount = async (withLoading = false) => {
+    if (withLoading) {
+      setCategoryCountLoading(true);
+    }
+
+    try {
+      const { count, error } = await supabase
+        .from('category')
+        .select('id', { count: 'exact', head: true });
+
+      if (error) throw error;
+
+      setCategoryCount(count ?? 0);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load category count',
+      });
+    } finally {
+      if (withLoading) {
+        setCategoryCountLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchItems();
     fetchStoreStatus();
+    fetchCategoryCount(true);
 
     const inventoryChannel = supabase
       .channel('inventory_changes_public')
@@ -119,6 +149,17 @@ export default function UserDashboard() {
         { event: '*', schema: 'public', table: 'item_variants' },
         () => {
           fetchItems();
+        }
+      )
+      .subscribe();
+
+    const categoryChannel = supabase
+      .channel('category_changes_public')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'category' },
+        () => {
+          fetchCategoryCount();
         }
       )
       .subscribe();
@@ -139,6 +180,7 @@ export default function UserDashboard() {
 
     return () => {
       inventoryChannel.unsubscribe();
+      categoryChannel.unsubscribe();
       storeChannel.unsubscribe();
     };
   }, []);
@@ -294,11 +336,6 @@ export default function UserDashboard() {
     return format(istDate, 'MMM d, yyyy • h:mm a');
   };
 
-  const categories = useMemo(
-    () => Array.from(new Set(items.map((i) => i.category).filter(Boolean))),
-    [items]
-  );
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -340,13 +377,15 @@ export default function UserDashboard() {
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Total Items</CardDescription>
-              <CardTitle className="text-3xl">{items.length}</CardTitle>
+              <CardTitle className="text-3xl">{loading ? '—' : items.length}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Categories</CardDescription>
-              <CardTitle className="text-3xl">{categories.length}</CardTitle>
+              <CardTitle className="text-3xl">
+                {categoryCountLoading ? '—' : categoryCount}
+              </CardTitle>
             </CardHeader>
           </Card>
         </div>
