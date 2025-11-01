@@ -306,12 +306,12 @@ export default function UserDashboard() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid gap-6 md:grid-cols-3 mb-8">
           <div
-            className={`rounded-[var(--radius)] border p-6 text-card-foreground shadow-sm transition-none ${
+            className={`rounded-[var(--radius)] border p-6 text-card-foreground transition-none ${
               storeStatus === null || storeStatusLoading
                 ? 'bg-card border-border shadow-[0_0_24px_rgba(15,23,42,0.25)] dark:shadow-[0_0_24px_rgba(15,23,42,0.2)]'
                 : storeStatus
-                ? 'bg-emerald-500/12 border-emerald-400/75 shadow-[0_0_48px_rgba(16,185,129,0.6)] dark:shadow-[0_0_42px_rgba(16,185,129,0.45)]'
-                : 'bg-destructive/12 border-destructive/75 shadow-[0_0_48px_rgba(239,68,68,0.6)] dark:shadow-[0_0_42px_rgba(239,68,68,0.45)]'
+                ? 'bg-emerald-500/12 border-emerald-400/75 shadow-[0_0_48px_rgba(16,185,129,0.5)] dark:shadow-[0_0_42px_rgba(16,185,129,0.45)]'
+                : 'bg-destructive/12 border-destructive/75 shadow-[0_0_48px_rgba(239,68,68,0.5)] dark:shadow-[0_0_42px_rgba(239,68,68,0.45)]'
             }`}
           >
             <div className="flex flex-col space-y-2">
