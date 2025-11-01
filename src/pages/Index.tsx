@@ -310,8 +310,8 @@ export default function UserDashboard() {
               storeStatus === null || storeStatusLoading
                 ? 'bg-card border-border shadow-[0_0_24px_rgba(15,23,42,0.25)] dark:shadow-[0_0_24px_rgba(15,23,42,0.2)]'
                 : storeStatus
-                ? 'bg-emerald-500/12 border-emerald-400/75 shadow-[0_0_48px_rgba(16,185,129,0.65)] dark:shadow-[0_0_42px_rgba(16,185,129,0.45)]'
-                : 'bg-destructive/12 border-destructive/75 shadow-[0_0_48px_rgba(239,68,68,0.65)] dark:shadow-[0_0_42px_rgba(239,68,68,0.45)]'
+                ? 'bg-emerald-500/12 border-emerald-400/75 shadow-[0_0_48px_rgba(16,185,129,0.6)] dark:shadow-[0_0_42px_rgba(16,185,129,0.45)]'
+                : 'bg-destructive/12 border-destructive/75 shadow-[0_0_48px_rgba(239,68,68,0.6)] dark:shadow-[0_0_42px_rgba(239,68,68,0.45)]'
             }`}
           >
             <div className="flex flex-col space-y-2">
