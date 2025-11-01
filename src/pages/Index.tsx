@@ -305,17 +305,25 @@ export default function UserDashboard() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid gap-6 md:grid-cols-3 mb-8">
-          <Card>
-            <CardHeader className="pb-3 space-y-2">
+          <div
+            className={`rounded-[var(--radius)] border p-6 text-card-foreground shadow-sm ${
+              storeStatus === null || storeStatusLoading
+                ? 'bg-card border-border shadow-[0_0_18px_rgba(15,23,42,0.06)]'
+                : storeStatus
+                ? 'bg-primary/12 border-primary/80 shadow-[0_0_32px_rgba(16,185,129,0.45)]'
+                : 'bg-destructive/12 border-destructive/80 shadow-[0_0_32px_rgba(239,68,68,0.45)]'
+            }`}
+          >
+            <div className="flex flex-col space-y-2">
               <CardDescription>Store Status</CardDescription>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <span
-                  className={`h-2 w-2 rounded-full ${
+                  className={`h-3 w-3 rounded-full shadow-[0_0_12px_currentColor] ${
                     storeStatus === null || storeStatusLoading
-                      ? 'bg-muted-foreground/50'
+                      ? 'bg-muted-foreground/40 text-muted-foreground/40'
                       : storeStatus
-                      ? 'bg-emerald-500'
-                      : 'bg-destructive'
+                      ? 'bg-emerald-400 text-emerald-400'
+                      : 'bg-destructive text-destructive'
                   }`}
                   aria-hidden="true"
                 />
@@ -327,8 +335,8 @@ export default function UserDashboard() {
                     : 'Closed'}
                 </CardTitle>
               </div>
-            </CardHeader>
-          </Card>
+            </div>
+          </div>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Total Items</CardDescription>
@@ -463,13 +471,6 @@ export default function UserDashboard() {
                         {item.description}
                       </p>
                     )}
-
-                    {isVariantBased && selectedVariant &&
-                      selectedVariant.variant_type !== 'price' && (
-                        <div className="text-xs text-muted-foreground">
-                          Variant Type: {VARIANT_TYPE_LABELS[selectedVariant.variant_type]}
-                        </div>
-                      )}
 
                     <div className="mt-auto flex flex-wrap items-start justify-between gap-4 border-t border-border pt-2">
                       <div>
