@@ -432,7 +432,7 @@ export default function AdminDashboard() {
                     setSelectedItem(null);
                     setFormOpen(true);
                   }}
-                  className="w-full sm:w-auto"
+                  className="w-full rounded-[var(--radius)] sm:w-auto"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
@@ -598,7 +598,11 @@ export default function AdminDashboard() {
                           <TableCell className="text-center">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full rounded-[var(--radius)] sm:w-auto"
+                                >
                                   Manage
                                 </Button>
                               </DropdownMenuTrigger>

@@ -365,7 +365,7 @@ export default function UserDashboard() {
                             onValueChange={(value) => handleVariantSelect(item.id, value)}
                             aria-label={`Select variant for ${item.name}`}
                           >
-                            <SelectTrigger className="h-7 min-w-[5rem] w-auto text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
+                            <SelectTrigger className="h-7 min-w-[5rem] w-auto rounded-[var(--radius)] text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
                               <SelectValue placeholder="Variant" />
                             </SelectTrigger>
                             <SelectContent>
@@ -379,11 +379,17 @@ export default function UserDashboard() {
                             </SelectContent>
                           </Select>
                         ) : isVariantBased ? (
-                          <Badge variant="outline" className="text-xs font-medium">
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-medium rounded-[var(--radius)]"
+                          >
                             No variants yet
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-xs font-medium">
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-medium rounded-[var(--radius)]"
+                          >
                             No Variant
                           </Badge>
                         )}
