@@ -730,7 +730,7 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <Card>
-            <CardHeader className="pb-3 space-y-3">
+            <CardHeader className="pb-6 space-y-3">
               <CardDescription>Store Status</CardDescription>
               <div className="flex items-center justify-between gap-3">
                 <CardTitle
@@ -755,19 +755,19 @@ export default function AdminDashboard() {
             </CardHeader>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-6">
               <CardDescription>Total Items</CardDescription>
               <CardTitle className="text-3xl">{loading ? '—' : items.length}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-6">
               <CardDescription>Total Quantity</CardDescription>
               <CardTitle className="text-3xl">{loading ? '—' : totalQuantity}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-6">
               <CardDescription>Categories</CardDescription>
               <CardTitle className="text-3xl">
                 {categoryCountLoading ? '—' : categoryCount}
