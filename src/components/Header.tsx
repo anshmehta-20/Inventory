@@ -68,12 +68,9 @@ export default function Header({
               <SheetPanelHeader>
                 <SheetTitle>Shreeji Foods</SheetTitle>
                 {profile ? (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm text-muted-foreground">Signed in as</p>
-                    <Badge className="w-fit bg-primary text-primary-foreground hover:bg-primary">
-                      {profile.email}
-                    </Badge>
-                  </div>
+                  <Badge className="w-fit bg-primary text-primary-foreground hover:bg-primary">
+                    {profile.email}
+                  </Badge>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Serving Mahavir Nagar since 1999

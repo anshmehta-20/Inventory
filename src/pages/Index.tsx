@@ -306,12 +306,12 @@ export default function UserDashboard() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid gap-6 md:grid-cols-3 mb-8">
           <div
-            className={`rounded-[var(--radius)] border p-6 text-card-foreground shadow-sm ${
+            className={`rounded-[var(--radius)] border p-6 text-card-foreground shadow-sm transition-none ${
               storeStatus === null || storeStatusLoading
-                ? 'bg-card border-border shadow-[0_0_18px_rgba(15,23,42,0.06)]'
+                ? 'bg-card border-border shadow-[0_0_24px_rgba(15,23,42,0.25)] dark:shadow-[0_0_24px_rgba(15,23,42,0.2)]'
                 : storeStatus
-                ? 'bg-primary/12 border-primary/80 shadow-[0_0_32px_rgba(16,185,129,0.45)]'
-                : 'bg-destructive/12 border-destructive/80 shadow-[0_0_32px_rgba(239,68,68,0.45)]'
+                ? 'bg-emerald-500/12 border-emerald-400/75 shadow-[0_0_48px_rgba(16,185,129,0.65)] dark:shadow-[0_0_42px_rgba(16,185,129,0.45)]'
+                : 'bg-destructive/12 border-destructive/75 shadow-[0_0_48px_rgba(239,68,68,0.65)] dark:shadow-[0_0_42px_rgba(239,68,68,0.45)]'
             }`}
           >
             <div className="flex flex-col space-y-2">
@@ -472,7 +472,7 @@ export default function UserDashboard() {
                       </p>
                     )}
 
-                    <div className="mt-auto flex flex-wrap items-start justify-between gap-4 border-t border-border pt-2">
+                    <div className="mt-auto flex flex-wrap items-start justify-between gap-4 border-t border-border dark:border-[#080808] pt-2">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Available Quantity</p>
                         <Badge
