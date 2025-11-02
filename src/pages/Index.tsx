@@ -2,10 +2,19 @@ import { useEffect, useState } from 'react';
 import { supabase, InventoryItem, ItemVariant } from '@/lib/supabase';
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import InventoryCard from '@/components/InventoryCard';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Package, Search } from 'lucide-react';
+import { format } from 'date-fns';
 
 const parseNumericValue = (value: string): number | null => {
   const match = value.match(/[\d\.]+/);
@@ -40,6 +49,14 @@ const sortVariants = (variants: ItemVariant[]) => {
 
     return a.variant_value.localeCompare(b.variant_value, undefined, { sensitivity: 'base' });
   });
+};
+
+const VARIANT_TYPE_LABELS: Record<ItemVariant['variant_type'], string> = {
+  weight: 'Weight',
+  pcs: 'Pieces',
+  price: 'Price',
+  flavor: 'Flavor',
+  size: 'Size',
 };
 
 type RawInventoryItem = Omit<InventoryItem, 'item_variants'> & {
@@ -308,6 +325,26 @@ export default function UserDashboard() {
       null;
 
     return { sortedVariants, selectedVariant };
+  };
+
+  const formatCurrency = (value: number | null | undefined) =>
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+    }).format(value ?? 0);
+
+  const formatVariantTimestamp = (timestamp?: string | null) => {
+    if (!timestamp) {
+      return '—';
+    }
+
+    const utcDate = new Date(timestamp);
+    if (Number.isNaN(utcDate.getTime())) {
+      return '—';
+    }
+
+    const istDate = new Date(utcDate.getTime() + 5.5 * 60 * 60 * 1000);
+    return format(istDate, 'MMM d, yyyy • h:mm a');
   };
 
   return (
