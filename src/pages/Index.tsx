@@ -459,7 +459,7 @@ export default function UserDashboard() {
                   key={item.id}
                   className="flex h-full flex-col hover:shadow-lg transition-shadow"
                 >
-                  <CardHeader className="space-y-2">
+                  <CardHeader className="space-y-2 pb-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <CardTitle className="text-lg">{item.name}</CardTitle>
@@ -521,33 +521,37 @@ export default function UserDashboard() {
                       </p>
                     )}
 
-                    <div className="mt-auto flex flex-wrap items-start justify-between gap-4 border-t border-border dark:border-[#080808] pt-2">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Available Quantity</p>
-                        <Badge
-                          variant={
-                            quantityToDisplay !== null && quantityToDisplay === 0
-                              ? 'destructive'
-                              : 'default'
-                          }
-                          className="px-3"
-                        >
-                          {quantityToDisplay ?? '—'}
-                        </Badge>
+                    <div className="mt-auto space-y-3 border-t border-border dark:border-[#080808] pt-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-1.5">Available Quantity</p>
+                          <div className="flex items-center">
+                            <Badge
+                              variant={
+                                quantityToDisplay !== null && quantityToDisplay === 0
+                                  ? 'destructive'
+                                  : 'default'
+                              }
+                              className="px-3 py-1"
+                            >
+                              {quantityToDisplay ?? '—'}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <p className="text-xs text-muted-foreground mb-1.5">Price</p>
+                          <p className="text-base font-semibold">
+                            {priceToDisplay !== null ? formatCurrency(priceToDisplay) : '—'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Price</p>
-                        <p className="text-sm font-semibold">
-                          {priceToDisplay !== null ? formatCurrency(priceToDisplay) : '—'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
-                        <p className="text-xs font-medium">
+                      <div className="text-xs text-muted-foreground pt-2 border-t border-border/50 dark:border-[#080808]/50">
+                        <span className="inline-block">Last Updated:</span>{' '}
+                        <span className="font-medium">
                           {lastUpdatedDisplay
                             ? formatVariantTimestamp(lastUpdatedDisplay)
                             : '—'}
-                        </p>
+                        </span>
                       </div>
                     </div>
                   </CardContent>
