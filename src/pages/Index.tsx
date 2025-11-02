@@ -4,7 +4,6 @@ import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import InventoryCard from '@/components/InventoryCard';
 import {
   Select,
   SelectContent,
@@ -441,22 +440,118 @@ export default function UserDashboard() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredItems.map((item) => {
               const { sortedVariants, selectedVariant } = getVariantsForItem(item);
+              const isVariantBased = item.has_variants;
+              const priceToDisplay = isVariantBased
+                ? selectedVariant?.price ?? null
+                : item.price ?? null;
+              const quantityToDisplay = isVariantBased
+                ? selectedVariant?.quantity ?? null
+                : item.quantity ?? null;
+              const skuLabel = isVariantBased
+                ? selectedVariant?.sku ?? null
+                : item.sku ?? null;
+              const lastUpdatedDisplay = isVariantBased
+                ? selectedVariant?.last_updated ?? null
+                : item.last_updated ?? null;
 
               return (
-                <InventoryCard
+                <Card
                   key={item.id}
-                  item={item}
-                  sortedVariants={sortedVariants}
-                  activeVariant={selectedVariant}
-                  onVariantSelect={handleVariantSelect}
-                  onVisibilityToggle={() => {}}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
-                  onAddVariant={() => {}}
-                  onEditVariant={() => {}}
-                  onDeleteVariant={() => {}}
-                  showManageActions={false}
-                />
+                  className="flex h-full flex-col hover:shadow-lg transition-shadow"
+                >
+                  <CardHeader className="space-y-2 pb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <CardTitle className="text-lg">{item.name}</CardTitle>
+                      {item.category && (
+                        <Badge variant="secondary" className="ml-auto">
+                          {item.category}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="!mt-0 flex flex-wrap items-center gap-2">
+                      {isVariantBased && sortedVariants.length > 0 ? (
+                        <Select
+                          value={selectedVariant?.id ?? sortedVariants[0].id}
+                          onValueChange={(value) => handleVariantSelect(item.id, value)}
+                          aria-label={`Select variant for ${item.name}`}
+                        >
+                          <SelectTrigger className="one-shadow h-7 min-w-[5rem] w-auto rounded-[var(--radius)] border border-border text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
+                            <SelectValue placeholder="Variant" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sortedVariants.map((variant) => (
+                              <SelectItem key={variant.id} value={variant.id}>
+                                {VARIANT_TYPE_LABELS[variant.variant_type]
+                                  ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
+                                  : variant.variant_value}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : isVariantBased ? (
+                        <Badge
+                          variant="outline"
+                          className="one-shadow text-xs font-medium rounded-[var(--radius)]"
+                        >
+                          No variants yet
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="one-shadow text-xs font-medium rounded-[var(--radius)]"
+                        >
+                          No Variant
+                        </Badge>
+                      )}
+                      {skuLabel ? (
+                        <code className="bg-muted px-2 py-1 rounded-[calc(var(--radius)*0.5)] text-xs text-muted-foreground ml-auto text-center min-w-[80px] inline-block">
+                          {skuLabel}
+                        </code>
+                      ) : (
+                        <span className="text-xs text-muted-foreground ml-auto text-center min-w-[80px] inline-block">SKU unavailable</span>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex flex-1 flex-col space-y-4 pb-4">
+                    {item.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+
+                    <div className="mt-auto space-y-3 border-t border-border dark:border-[#080808] pt-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-1.5">Available Quantity</p>
+                          <Badge
+                            variant={
+                              quantityToDisplay !== null && quantityToDisplay === 0
+                                ? 'destructive'
+                                : 'default'
+                            }
+                            className="px-3 py-1"
+                          >
+                            {quantityToDisplay ?? '—'}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <p className="text-xs text-muted-foreground mb-1.5">Price</p>
+                          <p className="text-base font-semibold">
+                            {priceToDisplay !== null ? formatCurrency(priceToDisplay) : '—'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground pt-2 border-t border-border/50 dark:border-[#080808]/50">
+                        <span className="inline-block">Last Updated:</span>{' '}
+                        <span className="font-medium">
+                          {lastUpdatedDisplay
+                            ? formatVariantTimestamp(lastUpdatedDisplay)
+                            : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
