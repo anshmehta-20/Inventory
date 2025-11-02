@@ -73,24 +73,28 @@ export default function VariantForm({
   });
 
   useEffect(() => {
-    if (variant) {
-      form.reset({
-        variant_type: variant.variant_type,
-        variant_value: variant.variant_value,
-        sku: variant.sku,
-        price: variant.price,
-        quantity: variant.quantity,
-      });
-    } else {
-      form.reset({
-        variant_type: 'weight',
-        variant_value: '',
-        sku: '',
-        price: 0,
-        quantity: 0,
-      });
+    if (open) {
+      if (variant) {
+        // Editing existing variant - populate with current values
+        form.reset({
+          variant_type: variant.variant_type,
+          variant_value: variant.variant_value,
+          sku: variant.sku,
+          price: variant.price,
+          quantity: variant.quantity,
+        });
+      } else {
+        // Adding new variant - reset to default values
+        form.reset({
+          variant_type: 'weight',
+          variant_value: '',
+          sku: '',
+          price: 0,
+          quantity: 0,
+        });
+      }
     }
-  }, [variant, form]);
+  }, [open, variant, form]);
 
   const onSubmit = async (data: VariantFormData) => {
     if (!itemId) {
@@ -180,7 +184,7 @@ export default function VariantForm({
                     <FormLabel>Variant Type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger className="h-12 rounded-[var(--radius)] border-2 border-border bg-background/50 px-4 py-3 text-base font-medium hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20">
                           <SelectValue placeholder="Choose type" />
                         </SelectTrigger>
                       </FormControl>
