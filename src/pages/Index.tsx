@@ -472,12 +472,12 @@ export default function UserDashboard() {
                           onValueChange={(value) => handleVariantSelect(item.id, value)}
                           aria-label={`Select variant for ${item.name}`}
                         >
-                          <SelectTrigger className="one-shadow h-7 min-w-[5rem] w-auto rounded-[var(--radius)] border border-border text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
+                          <SelectTrigger className="one-shadow h-8 min-w-[6rem] w-auto max-w-[12rem] rounded-[var(--radius)] border border-border text-xs hover:border-accent hover:bg-accent/50 hover:text-accent-foreground active:scale-[0.98] touch-manipulation">
                             <SelectValue placeholder="Variant" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="touch-manipulation">
                             {sortedVariants.map((variant) => (
-                              <SelectItem key={variant.id} value={variant.id}>
+                              <SelectItem key={variant.id} value={variant.id} className="touch-manipulation cursor-pointer">
                                 {VARIANT_TYPE_LABELS[variant.variant_type]
                                   ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
                                   : variant.variant_value}
