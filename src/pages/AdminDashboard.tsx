@@ -274,6 +274,76 @@ export default function AdminDashboard() {
     return { sortedVariants, selectedVariant };
   };
 
+  // Store automation: Open at 8:35 AM, Close at 9:35 PM
+  useEffect(() => {
+    const scheduleStoreUpdates = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      // Define open and close times
+      const openHour = 8;
+      const openMinute = 35;
+      const closeHour = 21;
+      const closeMinute = 35;
+
+      // Calculate time until next open (8:35 AM)
+      let msUntilOpen = 0;
+      if (currentHour < openHour || (currentHour === openHour && currentMinute < openMinute)) {
+        // Today's open time hasn't passed yet
+        const targetOpen = new Date(now);
+        targetOpen.setHours(openHour, openMinute, 0, 0);
+        msUntilOpen = targetOpen.getTime() - now.getTime();
+      } else {
+        // Schedule for tomorrow's open time
+        const targetOpen = new Date(now);
+        targetOpen.setDate(targetOpen.getDate() + 1);
+        targetOpen.setHours(openHour, openMinute, 0, 0);
+        msUntilOpen = targetOpen.getTime() - now.getTime();
+      }
+
+      // Calculate time until next close (9:35 PM)
+      let msUntilClose = 0;
+      if (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+        // Today's close time hasn't passed yet
+        const targetClose = new Date(now);
+        targetClose.setHours(closeHour, closeMinute, 0, 0);
+        msUntilClose = targetClose.getTime() - now.getTime();
+      } else {
+        // Schedule for tomorrow's close time
+        const targetClose = new Date(now);
+        targetClose.setDate(targetClose.getDate() + 1);
+        targetClose.setHours(closeHour, closeMinute, 0, 0);
+        msUntilClose = targetClose.getTime() - now.getTime();
+      }
+
+      // Schedule open action
+      const openTimeout = setTimeout(async () => {
+        console.log('Auto-opening store at 8:35 AM');
+        await handleStoreStatusToggle(true);
+        // Reschedule for next day
+        scheduleStoreUpdates();
+      }, msUntilOpen);
+
+      // Schedule close action
+      const closeTimeout = setTimeout(async () => {
+        console.log('Auto-closing store at 9:35 PM');
+        await handleStoreStatusToggle(false);
+        // Reschedule for next day
+        scheduleStoreUpdates();
+      }, msUntilClose);
+
+      return { openTimeout, closeTimeout };
+    };
+
+    const timeouts = scheduleStoreUpdates();
+
+    return () => {
+      clearTimeout(timeouts.openTimeout);
+      clearTimeout(timeouts.closeTimeout);
+    };
+  }, [storeStatus, storeStatusId]);
+
   useEffect(() => {
     fetchItems();
     fetchStoreStatus();
@@ -762,7 +832,7 @@ export default function AdminDashboard() {
                     storeStatus === null
                       ? 'text-foreground'
                       : storeStatus
-                      ? 'text-emerald-500'
+                      ? 'text-primary'
                       : 'text-destructive'
                   }`}
                 >

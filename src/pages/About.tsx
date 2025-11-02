@@ -23,7 +23,7 @@ const contactDetails = [
 export default function About() {
   return (
     <div className="min-h-screen bg-background">
-      <Header title="About Us" subtitle="Shreeji Foods, Mahavir Nagar" />
+      <Header subtitle="About Us" />
       <main className="container mx-auto px-4 py-12 space-y-10">
         <FadeContent blur duration={900} className="max-w-3xl space-y-4">
           <section>

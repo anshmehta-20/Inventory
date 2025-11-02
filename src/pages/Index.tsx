@@ -130,6 +130,16 @@ export default function UserDashboard() {
     }
   };
 
+  // Refresh store status periodically to reflect automated changes
+  useEffect(() => {
+    // Refresh status every 10 minutes to catch automated updates
+    const interval = setInterval(() => {
+      fetchStoreStatus();
+    }, 600000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     fetchItems();
     fetchStoreStatus();
