@@ -746,9 +746,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
-        title="Shreeji Foods" 
-        subtitle={`${profile?.email}${profile?.isAdmin ? ' Manage your Inventory here' : ''}`}
+      <Header
+        title="Shreeji Foods"
+        subtitle={profile?.email ?? ''}
       />
 
       <div className="container mx-auto px-4 py-8">
@@ -800,7 +800,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="mb-6">
           <CardHeader className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -847,6 +847,8 @@ export default function AdminDashboard() {
                 </Button>
               </div>
             </div>
+          </CardHeader>
+          <CardContent>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none" />
               <Input
@@ -862,47 +864,52 @@ export default function AdminDashboard() {
                 className="pl-10"
               />
             </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Loading inventory...
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  {searchQuery ? 'No items match your search' : 'No items in inventory'}
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-4 border-border"
-                  onClick={() => {
-                    setSelectedItem(null);
-                    setFormOpen(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Item
-                </Button>
-              </div>
-            ) : (
-              <div className="rounded-md border border-border dark:border-[#080808]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead className="text-center">Category</TableHead>
-                      <TableHead className="text-center">SKU</TableHead>
-                      <TableHead className="text-center">Variants</TableHead>
-                      <TableHead className="text-center">Price</TableHead>
-                      <TableHead className="text-center">Quantity</TableHead>
-                      <TableHead className="text-center">Visibility</TableHead>
-                      <TableHead className="text-center">Last Updated</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+          </CardContent>
+        </Card>
+
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            Loading inventory...
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {searchQuery ? 'No items match your search' : 'No items in inventory'}
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4 border-border"
+                onClick={() => {
+                  setSelectedItem(null);
+                  setFormOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Item
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border border-border]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="text-center">Category</TableHead>
+                        <TableHead className="text-center">SKU</TableHead>
+                        <TableHead className="text-center">Variants</TableHead>
+                        <TableHead className="text-center">Price</TableHead>
+                        <TableHead className="text-center">Quantity</TableHead>
+                        <TableHead className="text-center">Visibility</TableHead>
+                        <TableHead className="text-center">Last Updated</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                     {filteredItems.map((item) => {
                       const { sortedVariants, selectedVariant: activeVariant } = getVariantsForItem(item);
                       const displayPrice = item.has_variants
@@ -1120,9 +1127,204 @@ export default function AdminDashboard() {
                   </TableBody>
                 </Table>
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              {/* Mobile Card View */}
+              <div className="grid gap-6 md:hidden">
+                {filteredItems.map((item) => {
+                  const { sortedVariants, selectedVariant: activeVariant } = getVariantsForItem(item);
+                  const isVariantBased = item.has_variants;
+                  const displayPrice = isVariantBased
+                    ? activeVariant?.price ?? null
+                    : item.price ?? null;
+                  const displayQuantity = isVariantBased
+                    ? activeVariant?.quantity ?? null
+                    : item.quantity ?? null;
+                  const lastUpdatedValue = isVariantBased
+                    ? activeVariant?.last_updated ?? null
+                    : item.last_updated;
+                  const skuLabel = isVariantBased
+                    ? activeVariant?.sku ?? null
+                    : item.sku ?? null;
+
+                  return (
+                    <Card
+                      key={item.id}
+                      className={`flex h-full flex-col hover:shadow-lg transition-shadow ${!item.is_visible ? 'bg-muted/40' : ''}`}
+                    >
+                      <CardHeader className="space-y-2">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <CardTitle className="text-lg">{item.name}</CardTitle>
+                            {isVariantBased && sortedVariants.length > 0 ? (
+                              <Select
+                                value={activeVariant?.id ?? sortedVariants[0].id}
+                                onValueChange={(value) => handleVariantSelect(item.id, value)}
+                                aria-label={`Select variant for ${item.name}`}
+                              >
+                                <SelectTrigger className="one-shadow h-7 min-w-[5rem] w-auto rounded-[var(--radius)] border border-border text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
+                                  <SelectValue placeholder="Variant" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {sortedVariants.map((variant) => (
+                                    <SelectItem key={variant.id} value={variant.id}>
+                                      {VARIANT_TYPE_LABELS[variant.variant_type]
+                                        ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
+                                        : variant.variant_value}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : isVariantBased ? (
+                              <Badge
+                                variant="outline"
+                                className="one-shadow text-xs font-medium rounded-[var(--radius)]"
+                              >
+                                No variants yet
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="one-shadow text-xs font-medium rounded-[var(--radius)]"
+                              >
+                                No Variant
+                              </Badge>
+                            )}
+                          </div>
+                          {item.category && (
+                            <Badge variant="secondary" className="ml-auto">
+                              {item.category}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="!mt-0 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {skuLabel ? (
+                            <code className="bg-muted px-2 py-1 rounded">
+                              {skuLabel}
+                            </code>
+                          ) : (
+                            <span className="text-muted-foreground">SKU unavailable</span>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="flex flex-1 flex-col space-y-4">
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {item.description}
+                          </p>
+                        )}
+
+                        <div className="mt-auto flex flex-wrap items-start justify-between gap-4 border-t border-border dark:border-[#080808] pt-2">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Available Quantity</p>
+                            <Badge
+                              variant={
+                                displayQuantity !== null && displayQuantity === 0
+                                  ? 'destructive'
+                                  : 'default'
+                              }
+                              className="px-3"
+                            >
+                              {displayQuantity ?? '—'}
+                            </Badge>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Price</p>
+                            <p className="text-sm font-semibold">
+                              {displayPrice !== null ? formatCurrency(displayPrice) : '—'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
+                            <p className="text-xs font-medium">
+                              {lastUpdatedValue ? formatVariantTimestamp(lastUpdatedValue) : '—'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3 border-t border-border dark:border-[#080808] pt-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">Visibility</span>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                size="sm"
+                                checked={item.is_visible}
+                                onCheckedChange={(checked) => handleVisibilityToggle(item, checked)}
+                                aria-label={`Toggle visibility for ${item.name}`}
+                              />
+                              <span className="text-xs text-muted-foreground">
+                                {item.is_visible ? 'Visible' : 'Hidden'}
+                              </span>
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full rounded-[var(--radius)] border-border"
+                              >
+                                Manage
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuLabel>Item</DropdownMenuLabel>
+                              <DropdownMenuItem onSelect={() => handleEdit(item)}>
+                                Edit Item
+                              </DropdownMenuItem>
+                              {item.has_variants ? (
+                                <>
+                                  <DropdownMenuItem onSelect={() => openVariantForm(item)}>
+                                    Add Variant
+                                  </DropdownMenuItem>
+                                  {sortedVariants.length > 0 && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuLabel>Variants</DropdownMenuLabel>
+                                      {sortedVariants.map((variant) => (
+                                        <DropdownMenuSub key={variant.id}>
+                                          <DropdownMenuSubTrigger>
+                                            {variant.variant_value}
+                                          </DropdownMenuSubTrigger>
+                                          <DropdownMenuSubContent>
+                                            <DropdownMenuItem
+                                              onSelect={() => openVariantForm(item, variant)}
+                                            >
+                                              Edit Variant
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              className="text-destructive focus:text-destructive"
+                                              onSelect={() => openVariantDeleteDialog(item, variant)}
+                                            >
+                                              Delete Variant
+                                            </DropdownMenuItem>
+                                          </DropdownMenuSubContent>
+                                        </DropdownMenuSub>
+                                      ))}
+                                    </>
+                                  )}
+                                </>
+                              ) : (
+                                <DropdownMenuItem disabled className="opacity-75 cursor-not-allowed">
+                                  Enable variants from item settings
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => openDeleteDialog(item)}
+                              >
+                                Delete Item
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
+        )}
       </div>
 
       <InventoryForm

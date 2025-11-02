@@ -78,7 +78,20 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
+        'smooth-in': 'cubic-bezier(0.4, 0, 1, 1)',
+        'smooth-out': 'cubic-bezier(0, 0, 0.2, 1)',
+        'smooth-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+      transitionDuration: {
+        'smooth': '200ms',
+        'smooth-slow': '300ms',
+      },
     },
   },
   plugins: [require('tailwindcss-animate')],
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
 };

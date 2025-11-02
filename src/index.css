@@ -129,11 +129,105 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+
+  /* Performance optimizations for smoother animations */
+  * {
+    /* Optimize font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent text selection jank */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Optimize elements with transitions for GPU acceleration */
+  [class*="transition"],
+  [class*="hover:"],
+  [class*="animate"],
+  button,
+  a {
+    /* Use GPU acceleration for these properties */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Smooth rendering for animations */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* Let browser optimize transform and opacity changes */
+    will-change: auto;
+  }
+
+  /* Optimize images and media */
+  img,
+  video,
+  iframe {
+    /* Prevent layout shifts */
+    content-visibility: auto;
+  }
+
+  /* Containment for better performance */
+  article,
+  section,
+  main,
+  aside {
+    contain: layout style paint;
+  }
 }
 
 @layer components {
   .one-shadow {
     box-shadow: var(--shadow-x) var(--shadow-y) var(--shadow-blur) var(--shadow-spread)
       hsl(var(--shadow-color) / var(--shadow-opacity)) !important;
+  }
+}
+
+@layer utilities {
+  /* Smooth animation utilities */
+  .animate-smooth {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .will-change-auto {
+    will-change: auto;
+  }
+
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .will-change-opacity {
+    will-change: opacity;
+  }
+
+  /* GPU acceleration for better performance */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  /* Optimize for animations */
+  .optimize-animation {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+  }
+
+  /* Respect user's motion preferences while keeping smooth animations */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* For browsers that support smooth scrolling */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 }
