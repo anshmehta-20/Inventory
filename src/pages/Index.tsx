@@ -460,61 +460,59 @@ export default function UserDashboard() {
                   className="flex h-full flex-col hover:shadow-lg transition-shadow"
                 >
                   <CardHeader className="space-y-2 pb-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <CardTitle className="text-lg">{item.name}</CardTitle>
-                        {isVariantBased && sortedVariants.length > 0 ? (
-                          <Select
-                            value={selectedVariant?.id ?? sortedVariants[0].id}
-                            onValueChange={(value) => handleVariantSelect(item.id, value)}
-                            aria-label={`Select variant for ${item.name}`}
-                          >
-                            <SelectTrigger className="one-shadow h-7 min-w-[5rem] w-auto rounded-[var(--radius)] border border-border text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
-                              <SelectValue placeholder="Variant" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {sortedVariants.map((variant) => (
-                                <SelectItem key={variant.id} value={variant.id}>
-                                  {VARIANT_TYPE_LABELS[variant.variant_type]
-                                    ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
-                                    : variant.variant_value}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : isVariantBased ? (
-                          <Badge
-                            variant="outline"
-                            className="one-shadow text-xs font-medium rounded-[var(--radius)]"
-                          >
-                            No variants yet
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="one-shadow text-xs font-medium rounded-[var(--radius)]"
-                          >
-                            No Variant
-                          </Badge>
-                        )}
-                      </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <CardTitle className="text-lg">{item.name}</CardTitle>
                       {item.category && (
                         <Badge variant="secondary" className="ml-auto">
                           {item.category}
                         </Badge>
                       )}
                     </div>
-                    <div className="!mt-0 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <div className="!mt-0 flex flex-wrap items-center gap-2">
+                      {isVariantBased && sortedVariants.length > 0 ? (
+                        <Select
+                          value={selectedVariant?.id ?? sortedVariants[0].id}
+                          onValueChange={(value) => handleVariantSelect(item.id, value)}
+                          aria-label={`Select variant for ${item.name}`}
+                        >
+                          <SelectTrigger className="one-shadow h-7 min-w-[5rem] w-auto rounded-[var(--radius)] border border-border text-xs transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground">
+                            <SelectValue placeholder="Variant" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sortedVariants.map((variant) => (
+                              <SelectItem key={variant.id} value={variant.id}>
+                                {VARIANT_TYPE_LABELS[variant.variant_type]
+                                  ? `${variant.variant_value} • ${VARIANT_TYPE_LABELS[variant.variant_type]}`
+                                  : variant.variant_value}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : isVariantBased ? (
+                        <Badge
+                          variant="outline"
+                          className="one-shadow text-xs font-medium rounded-[var(--radius)]"
+                        >
+                          No variants yet
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="one-shadow text-xs font-medium rounded-[var(--radius)]"
+                        >
+                          No Variant
+                        </Badge>
+                      )}
                       {skuLabel ? (
-                        <code className="bg-muted px-2 py-1 rounded">
+                        <code className="bg-muted px-2 py-1 rounded-[calc(var(--radius)*0.5)] text-xs text-muted-foreground ml-auto text-center min-w-[80px] inline-block">
                           {skuLabel}
                         </code>
                       ) : (
-                        <span className="text-muted-foreground">SKU unavailable</span>
+                        <span className="text-xs text-muted-foreground ml-auto text-center min-w-[80px] inline-block">SKU unavailable</span>
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent className="flex flex-1 flex-col space-y-4">
+                  <CardContent className="flex flex-1 flex-col space-y-4 pb-4">
                     {item.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {item.description}
