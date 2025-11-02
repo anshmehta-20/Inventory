@@ -1564,8 +1564,11 @@ export default function AdminDashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{itemToDelete?.name}". This action cannot
-              be undone.
+              This will permanently delete "{itemToDelete?.name}"
+              {itemToDelete?.has_variants && itemToDelete.item_variants.length > 0 
+                ? ` and all its ${itemToDelete.item_variants.length} variant${itemToDelete.item_variants.length !== 1 ? 's' : ''}`
+                : ''
+              }. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
