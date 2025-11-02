@@ -70,7 +70,7 @@ export default function About() {
 
         <FadeContent duration={1000} delay={240} className="max-w-3xl">
           <section className="space-y-4 rounded-[var(--radius)] border border-dashed border-primary/40 bg-primary/5 p-6">
-            <h3 className="text-xl font-semibold text-foreground">Visit Us Soon</h3>
+            <h3 className="text-xl font-semibold text-foreground">Visit Us</h3>
             <p className="text-muted-foreground text-base">
               Come visit us and experience the taste of tradition and trust at Shreeji Foods. We look forward to serving you and becoming a part of your daily meals and special occasions.
             </p>

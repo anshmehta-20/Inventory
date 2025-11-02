@@ -11,7 +11,7 @@ const rootSizes = {
 const thumbSizes = {
   default:
     "h-5 w-5 data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
-  sm: "h-[18px] w-[18px] data-[state=checked]:translate-x-[17px] data-[state=unchecked]:translate-x-0",
+  sm: "h-[18px] w-[18px] data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-0",
 } as const
 
 type SwitchProps = React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> & {

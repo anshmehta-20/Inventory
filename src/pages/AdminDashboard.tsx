@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, InventoryItem, ItemVariant } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -52,16 +52,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import { Plus, Package, Search, MoreVertical, CircleMinus, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Package, Search, MoreVertical, CircleMinus, RefreshCw, Check, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import InventoryForm from '@/components/InventoryForm';
 import CategoryForm from '@/components/CategoryForm';
@@ -147,9 +138,11 @@ export default function AdminDashboard() {
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [removingCategory, setRemovingCategory] = useState(false);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const [categoryPickerSearch, setCategoryPickerSearch] = useState('');
   const [categoryCount, setCategoryCount] = useState(0);
   const [categoryCountLoading, setCategoryCountLoading] = useState(true);
   const { toast } = useToast();
+  const categoryPickerRef = useRef<HTMLDivElement | null>(null);
 
   const fetchStoreStatus = async () => {
     setStoreStatusLoading(true);
@@ -435,6 +428,7 @@ export default function AdminDashboard() {
       setCategoriesLoading(false);
       setRemovingCategory(false);
       setCategoryPickerOpen(false);
+      setCategoryPickerSearch('');
       return;
     }
 
@@ -452,8 +446,10 @@ export default function AdminDashboard() {
         setAvailableCategories(categoryList);
         if (categoryList.length > 0) {
           setSelectedCategoryId(categoryList[0].id);
+          setCategoryPickerSearch(categoryList[0].name);
         } else {
           setSelectedCategoryId('');
+          setCategoryPickerSearch('');
         }
       } catch (error: any) {
         toast({
@@ -474,19 +470,47 @@ export default function AdminDashboard() {
       if (selectedCategoryId !== '') {
         setSelectedCategoryId('');
       }
+      if (!categoryPickerOpen) {
+        setCategoryPickerSearch('');
+      }
       return;
     }
 
     const exists = availableCategories.some((category) => category.id === selectedCategoryId);
     if (!exists) {
       setSelectedCategoryId(availableCategories[0].id);
+      if (!categoryPickerOpen) {
+        setCategoryPickerSearch(availableCategories[0].name);
+      }
     }
-  }, [availableCategories, selectedCategoryId]);
+  }, [availableCategories, selectedCategoryId, categoryPickerOpen]);
 
   const selectedCategory = useMemo(
     () => availableCategories.find((category) => category.id === selectedCategoryId) ?? null,
     [availableCategories, selectedCategoryId]
   );
+
+  useEffect(() => {
+    if (!categoryPickerOpen) {
+      setCategoryPickerSearch(selectedCategory?.name ?? '');
+    }
+  }, [selectedCategory, categoryPickerOpen]);
+
+  useEffect(() => {
+    if (!categoryPickerOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryPickerRef.current && !categoryPickerRef.current.contains(event.target as Node)) {
+        setCategoryPickerOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [categoryPickerOpen]);
 
   const fetchItems = async () => {
     try {
@@ -1134,45 +1158,99 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-3">
               <p className="text-sm font-medium">Category</p>
-              <Popover open={categoryPickerOpen} onOpenChange={setCategoryPickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={categoryPickerOpen}
-                    className="w-full justify-between border border-border"
-                    disabled={removingCategory}
-                  >
-                    {selectedCategory ? selectedCategory.name : 'Select a category'}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="p-0 w-[280px]">
-                  <Command>
-                    <CommandInput placeholder="Search categories..." />
-                    <CommandList>
-                      <CommandEmpty>No categories found.</CommandEmpty>
-                      <CommandGroup>
-                        {availableCategories.map((category) => (
-                          <CommandItem
-                            key={category.id}
-                            value={category.name}
-                            onSelect={() => {
-                              setSelectedCategoryId(category.id);
-                              setCategoryPickerOpen(false);
-                            }}
-                          >
-                            {category.name}
-                            {selectedCategoryId === category.id ? (
-                              <Check className="ml-auto h-4 w-4" />
-                            ) : null}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <div className="relative" ref={categoryPickerRef}>
+                <Input
+                  placeholder="Select a category"
+                  value={categoryPickerSearch}
+                  disabled={removingCategory}
+                  className="pr-10"
+                  onChange={(event) => {
+                    if (removingCategory) return;
+                    setCategoryPickerSearch(event.target.value);
+                    setCategoryPickerOpen(true);
+                  }}
+                  onFocus={() => {
+                    if (!removingCategory) {
+                      setCategoryPickerOpen(true);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  aria-label={categoryPickerOpen ? 'Hide categories' : 'Show categories'}
+                  aria-expanded={categoryPickerOpen}
+                  className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    if (removingCategory) return;
+                    setCategoryPickerOpen((prev) => !prev);
+                  }}
+                  disabled={removingCategory}
+                >
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${categoryPickerOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {categoryPickerOpen && (
+                  <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-popover px-1 py-1 shadow-md">
+                    {(() => {
+                      const query = categoryPickerSearch.trim().toLowerCase();
+                      const filtered = query
+                        ? availableCategories.filter((category) =>
+                            category.name.toLowerCase().includes(query)
+                          )
+                        : availableCategories;
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="px-3 py-2 text-sm text-muted-foreground">
+                            No categories found.
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <>
+                          {filtered.map((category) => (
+                            <button
+                              key={category.id}
+                              type="button"
+                              className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                setSelectedCategoryId(category.id);
+                                setCategoryPickerSearch(category.name);
+                                setCategoryPickerOpen(false);
+                              }}
+                            >
+                              <span className="flex-1 truncate text-left">{category.name}</span>
+                              <Check
+                                className={`ml-2 h-4 w-4 ${
+                                  selectedCategoryId === category.id ? 'opacity-100' : 'opacity-0'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </>
+                      );
+                    })()}
+                    {selectedCategoryId && (
+                      <button
+                        type="button"
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setSelectedCategoryId('');
+                          setCategoryPickerSearch('');
+                          setCategoryPickerOpen(false);
+                        }}
+                      >
+                        Clear selection
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           <DialogFooter className="pt-4">

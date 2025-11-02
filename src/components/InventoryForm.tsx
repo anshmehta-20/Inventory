@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -74,8 +75,12 @@ export default function InventoryForm({
   onSuccess,
 }: InventoryFormProps) {
   const [loading, setLoading] = useState(false);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const categoryFieldRef = useRef<HTMLDivElement | null>(null);
 
   const form = useForm<InventoryFormData>({
     resolver: zodResolver(inventorySchema),
@@ -119,6 +124,69 @@ export default function InventoryForm({
   }, [item, form]);
 
   const watchHasVariants = form.watch('has_variants');
+
+  // Fetch available categories when the dialog opens so the dropdown has options ready.
+  useEffect(() => {
+    if (!open) return;
+
+    let isMounted = true;
+
+    const fetchCategories = async () => {
+      try {
+        setCategoryLoading(true);
+        const { data, error } = await supabase
+          .from('category')
+          .select('name')
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        if (!isMounted) return;
+
+        const names = (data ?? [])
+          .map((row) => (row?.name ?? '').trim())
+          .filter((name) => name.length > 0);
+
+        setCategoryOptions(Array.from(new Set(names)));
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'Failed to load categories',
+        });
+      } finally {
+        if (isMounted) {
+          setCategoryLoading(false);
+        }
+      }
+    };
+
+    fetchCategories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, toast]);
+
+  // Close the dropdown when clicking outside of the category field container.
+  useEffect(() => {
+    if (!categoryDropdownOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        categoryFieldRef.current &&
+        !categoryFieldRef.current.contains(event.target as Node)
+      ) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [categoryDropdownOpen]);
 
   const onSubmit = async (data: InventoryFormData) => {
     try {
@@ -210,12 +278,103 @@ export default function InventoryForm({
                 <FormItem>
                   <FormLabel>Category</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., Sweets"
-                      {...field}
-                      value={field.value ?? ''}
-                    />
+                    <div className="relative" ref={categoryFieldRef}>
+                      <Input
+                        placeholder="e.g., Sweets"
+                        {...field}
+                        value={field.value ?? ''}
+                        className="pr-9"
+                        onChange={(event) => {
+                          field.onChange(event.target.value);
+                          setCategoryDropdownOpen(true);
+                        }}
+                        onFocus={() => {
+                          setCategoryDropdownOpen(true);
+                        }}
+                        onBlur={() => {
+                          field.onBlur();
+                        }}
+                      />
+                      <button
+                        type="button"
+                        aria-label={categoryDropdownOpen ? 'Hide categories' : 'Show categories'}
+                        aria-expanded={categoryDropdownOpen}
+                        className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setCategoryDropdownOpen((prev) => !prev);
+                        }}
+                      >
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      {categoryDropdownOpen && (
+                        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-popover px-1 py-1 shadow-md">
+                          {categoryLoading ? (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                              Loading categories...
+                            </div>
+                          ) : (
+                            <>
+                              {(() => {
+                                const inputValue = typeof field.value === 'string' ? field.value : '';
+                                const trimmedInput = inputValue.trim();
+                                const lowercaseQuery = inputValue.toLowerCase();
+                                const filteredOptions = inputValue
+                                  ? categoryOptions.filter((option) =>
+                                      option.toLowerCase().includes(lowercaseQuery)
+                                    )
+                                  : categoryOptions;
+                                return (
+                                  <>
+                                    {filteredOptions.length === 0 && trimmedInput.length === 0 && (
+                                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                                        No categories found.
+                                      </div>
+                                    )}
+                                    {filteredOptions.map((option) => (
+                                      <button
+                                        key={option}
+                                        type="button"
+                                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                                        onMouseDown={(event) => event.preventDefault()}
+                                        onClick={() => {
+                                          field.onChange(option);
+                                          setCategoryDropdownOpen(false);
+                                        }}
+                                      >
+                                        <span className="flex-1 truncate pr-2 text-left">{option}</span>
+                                        {field.value === option && (
+                                          <span className="ml-auto text-xs font-medium text-primary">Selected</span>
+                                        )}
+                                      </button>
+                                    ))}
+                                  </>
+                                );
+                              })()}
+                              {field.value && (
+                                <button
+                                  type="button"
+                                  className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => {
+                                    field.onChange(null);
+                                    setCategoryDropdownOpen(false);
+                                  }}
+                                >
+                                  Clear selection
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
+                  <FormDescription>
+                    Start typing to filter categories.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

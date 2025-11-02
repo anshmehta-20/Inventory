@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import DarkMode from '@/components/DarkMode';
+import Footer from '@/components/Footer';
 
 // Pages
 import LoginPage from '@/pages/LoginPage';
@@ -79,6 +80,7 @@ const App = () => (
               {/* Catch-all 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <Footer />
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
