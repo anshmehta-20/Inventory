@@ -25,10 +25,54 @@ const parseNumericValue = (value: string): number | null => {
   return Number.isNaN(numeric) ? null : numeric;
 };
 
+// Convert weight to grams for proper sorting
+const parseWeightInGrams = (value: string): number | null => {
+  const lowerValue = value.toLowerCase();
+  const numMatch = lowerValue.match(/(\d+(?:\.\d+)?)/);
+  
+  if (!numMatch) {
+    return null;
+  }
+  
+  const num = Number.parseFloat(numMatch[1]);
+  if (Number.isNaN(num)) {
+    return null;
+  }
+  
+  // Convert to grams based on unit
+  if (lowerValue.includes('kg')) {
+    return num * 1000; // kg to grams
+  } else if (lowerValue.includes('g') && !lowerValue.includes('kg')) {
+    return num; // already in grams
+  } else if (lowerValue.includes('mg')) {
+    return num / 1000; // mg to grams
+  } else if (lowerValue.includes('lb') || lowerValue.includes('pound')) {
+    return num * 453.592; // pounds to grams
+  } else if (lowerValue.includes('oz') || lowerValue.includes('ounce')) {
+    return num * 28.3495; // ounces to grams
+  }
+  
+  // If no unit found, treat as the raw number
+  return num;
+};
+
 const sortVariants = (variants: ItemVariant[]) => {
   return [...variants].sort((a, b) => {
-    const aValue = parseNumericValue(a.variant_value);
-    const bValue = parseNumericValue(b.variant_value);
+    // Check if this is a weight-based variant
+    const isWeightVariant = a.variant_type === 'weight' || b.variant_type === 'weight';
+    
+    let aValue: number | null;
+    let bValue: number | null;
+    
+    if (isWeightVariant) {
+      // Use weight-aware parsing for weight variants
+      aValue = parseWeightInGrams(a.variant_value);
+      bValue = parseWeightInGrams(b.variant_value);
+    } else {
+      // Use simple numeric parsing for other variants
+      aValue = parseNumericValue(a.variant_value);
+      bValue = parseNumericValue(b.variant_value);
+    }
 
     if (aValue !== null && bValue !== null && aValue !== bValue) {
       return aValue - bValue;

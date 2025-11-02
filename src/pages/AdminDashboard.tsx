@@ -52,7 +52,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Package, Search, MoreVertical, CircleMinus, RefreshCw, Check, ChevronDown } from 'lucide-react';
+import { Plus, Package, Search, MoreVertical, CircleMinus, RefreshCw, Check, ChevronDown, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import InventoryForm from '@/components/InventoryForm';
 import CategoryForm from '@/components/CategoryForm';
@@ -85,10 +85,54 @@ const parseNumericValue = (value: string): number | null => {
   return Number.isNaN(numeric) ? null : numeric;
 };
 
+// Convert weight to grams for proper sorting
+const parseWeightInGrams = (value: string): number | null => {
+  const lowerValue = value.toLowerCase();
+  const numMatch = lowerValue.match(/(\d+(?:\.\d+)?)/);
+  
+  if (!numMatch) {
+    return null;
+  }
+  
+  const num = Number.parseFloat(numMatch[1]);
+  if (Number.isNaN(num)) {
+    return null;
+  }
+  
+  // Convert to grams based on unit
+  if (lowerValue.includes('kg')) {
+    return num * 1000; // kg to grams
+  } else if (lowerValue.includes('g') && !lowerValue.includes('kg')) {
+    return num; // already in grams
+  } else if (lowerValue.includes('mg')) {
+    return num / 1000; // mg to grams
+  } else if (lowerValue.includes('lb') || lowerValue.includes('pound')) {
+    return num * 453.592; // pounds to grams
+  } else if (lowerValue.includes('oz') || lowerValue.includes('ounce')) {
+    return num * 28.3495; // ounces to grams
+  }
+  
+  // If no unit found, treat as the raw number
+  return num;
+};
+
 const sortVariants = (variants: ItemVariant[]) => {
   return [...variants].sort((a, b) => {
-    const aValue = parseNumericValue(a.variant_value);
-    const bValue = parseNumericValue(b.variant_value);
+    // Check if this is a weight-based variant
+    const isWeightVariant = a.variant_type === 'weight' || b.variant_type === 'weight';
+    
+    let aValue: number | null;
+    let bValue: number | null;
+    
+    if (isWeightVariant) {
+      // Use weight-aware parsing for weight variants
+      aValue = parseWeightInGrams(a.variant_value);
+      bValue = parseWeightInGrams(b.variant_value);
+    } else {
+      // Use simple numeric parsing for other variants
+      aValue = parseNumericValue(a.variant_value);
+      bValue = parseNumericValue(b.variant_value);
+    }
 
     if (aValue !== null && bValue !== null && aValue !== bValue) {
       return aValue - bValue;
@@ -141,6 +185,10 @@ export default function AdminDashboard() {
   const [categoryPickerSearch, setCategoryPickerSearch] = useState('');
   const [categoryCount, setCategoryCount] = useState(0);
   const [categoryCountLoading, setCategoryCountLoading] = useState(true);
+  const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
+  const [quantityEditItem, setQuantityEditItem] = useState<{ item: InventoryItem; variant: ItemVariant | null } | null>(null);
+  const [newQuantity, setNewQuantity] = useState<string>('');
+  const [updatingQuantity, setUpdatingQuantity] = useState(false);
   const { toast } = useToast();
   const categoryPickerRef = useRef<HTMLDivElement | null>(null);
 
@@ -690,6 +738,74 @@ export default function AdminDashboard() {
     setVariantDeleteDialogOpen(true);
   };
 
+  const openQuantityDialog = (item: InventoryItem, variant: ItemVariant | null) => {
+    setQuantityEditItem({ item, variant });
+    const currentQuantity = variant ? variant.quantity : item.quantity;
+    setNewQuantity(currentQuantity?.toString() ?? '0');
+    setQuantityDialogOpen(true);
+  };
+
+  const handleQuantityUpdate = async () => {
+    if (!quantityEditItem) return;
+
+    const qty = parseInt(newQuantity, 10);
+    if (isNaN(qty) || qty < 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid quantity',
+        description: 'Please enter a valid quantity (0 or greater).',
+      });
+      return;
+    }
+
+    try {
+      setUpdatingQuantity(true);
+
+      if (quantityEditItem.variant) {
+        // Update variant quantity
+        const { error } = await supabase
+          .from('item_variants')
+          .update({
+            quantity: qty,
+            updated_by: profile?.id ?? null,
+          })
+          .eq('id', quantityEditItem.variant.id);
+
+        if (error) throw error;
+      } else {
+        // Update item quantity (no variants)
+        const { error } = await supabase
+          .from('inventory_items')
+          .update({
+            quantity: qty,
+            last_updated: new Date().toISOString(),
+            updated_by: profile?.id ?? null,
+          })
+          .eq('id', quantityEditItem.item.id);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: 'Quantity updated',
+        description: 'The quantity has been updated successfully.',
+      });
+
+      await fetchItems();
+      setQuantityDialogOpen(false);
+      setQuantityEditItem(null);
+      setNewQuantity('');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update quantity.',
+      });
+    } finally {
+      setUpdatingQuantity(false);
+    }
+  };
+
   const handleVariantDelete = async () => {
     if (!variantToDelete) return;
 
@@ -1106,13 +1222,24 @@ export default function AdminDashboard() {
                             )}
                           </TableCell>
                           <TableCell className="text-center">
-                            {displayQuantity !== null ? (
-                              <Badge variant={displayQuantity === 0 ? 'destructive' : 'default'}>
-                                {displayQuantity}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">—</Badge>
-                            )}
+                            <div className="flex items-center justify-center gap-2">
+                              {displayQuantity !== null ? (
+                                <Badge variant={displayQuantity === 0 ? 'destructive' : 'default'}>
+                                  {displayQuantity}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline">—</Badge>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => openQuantityDialog(item, activeVariant)}
+                                title="Update quantity"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
@@ -1287,16 +1414,27 @@ export default function AdminDashboard() {
                           <div className="flex items-center justify-between gap-4">
                             <div className="flex-1">
                               <p className="text-xs text-muted-foreground mb-1.5">Available Quantity</p>
-                              <Badge
-                                variant={
-                                  displayQuantity !== null && displayQuantity === 0
-                                    ? 'destructive'
-                                    : 'default'
-                                }
-                                className="px-3 py-1"
-                              >
-                                {displayQuantity ?? '—'}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={
+                                    displayQuantity !== null && displayQuantity === 0
+                                      ? 'destructive'
+                                      : 'default'
+                                  }
+                                  className="px-3 py-1"
+                                >
+                                  {displayQuantity ?? '—'}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => openQuantityDialog(item, activeVariant)}
+                                  title="Update quantity"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="flex flex-col items-end">
                               <p className="text-xs text-muted-foreground mb-1.5">Price</p>
@@ -1595,6 +1733,60 @@ export default function AdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={quantityDialogOpen} onOpenChange={setQuantityDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Update Quantity</DialogTitle>
+            <DialogDescription>
+              {quantityEditItem?.variant
+                ? `Update the quantity for variant "${quantityEditItem.variant.variant_value}" of "${quantityEditItem.item.name}"`
+                : `Update the quantity for "${quantityEditItem?.item.name}"`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="quantity" className="text-sm font-medium">
+                New Quantity
+              </label>
+              <Input
+                id="quantity"
+                type="number"
+                min="0"
+                step="1"
+                value={newQuantity}
+                onChange={(e) => setNewQuantity(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleQuantityUpdate();
+                  }
+                }}
+                placeholder="Enter quantity"
+                disabled={updatingQuantity}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setQuantityDialogOpen(false)}
+              disabled={updatingQuantity}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleQuantityUpdate}
+              disabled={updatingQuantity}
+            >
+              {updatingQuantity ? 'Updating...' : 'Update Quantity'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
