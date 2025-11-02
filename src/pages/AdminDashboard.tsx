@@ -4,6 +4,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import {
   Select,
   SelectContent,
@@ -827,16 +836,18 @@ export default function AdminDashboard() {
             <CardHeader className="pb-6 space-y-3">
               <CardDescription>Store Status</CardDescription>
               <div className="flex items-center justify-between gap-3">
-                <CardTitle
-                  className={`text-3xl transition-colors ${
-                    storeStatus === null
-                      ? 'text-foreground'
-                      : storeStatus
-                      ? 'text-primary'
-                      : 'text-destructive'
-                  }`}
-                >
-                  {storeStatus === null ? '—' : storeStatus ? 'Open' : 'Closed'}
+                <CardTitle className="text-3xl">
+                  <span
+                    className={`transition-colors ${
+                      storeStatus === null
+                        ? 'text-foreground'
+                        : storeStatus
+                        ? 'text-emerald-500'
+                        : 'text-destructive'
+                    }`}
+                  >
+                    {storeStatus === null ? '—' : storeStatus ? 'Open' : 'Closed'}
+                  </span>
                 </CardTitle>
                 <Switch
                   size="default"

@@ -447,9 +447,6 @@ export default function UserDashboard() {
               const quantityToDisplay = isVariantBased
                 ? selectedVariant?.quantity ?? null
                 : item.quantity ?? null;
-              const skuLabel = isVariantBased
-                ? selectedVariant?.sku ?? null
-                : item.sku ?? null;
               const lastUpdatedDisplay = isVariantBased
                 ? selectedVariant?.last_updated ?? null
                 : item.last_updated ?? null;
@@ -502,13 +499,6 @@ export default function UserDashboard() {
                         >
                           No Variant
                         </Badge>
-                      )}
-                      {skuLabel ? (
-                        <code className="bg-muted px-2 py-1 rounded-[calc(var(--radius)*0.5)] text-xs text-muted-foreground ml-auto text-center min-w-[80px] inline-block">
-                          {skuLabel}
-                        </code>
-                      ) : (
-                        <span className="text-xs text-muted-foreground ml-auto text-center min-w-[80px] inline-block">SKU unavailable</span>
                       )}
                     </div>
                   </CardHeader>

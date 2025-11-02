@@ -180,7 +180,7 @@ export default function VariantForm({
                     <FormLabel>Variant Type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10">
                           <SelectValue placeholder="Choose type" />
                         </SelectTrigger>
                       </FormControl>
