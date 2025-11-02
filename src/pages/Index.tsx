@@ -525,18 +525,16 @@ export default function UserDashboard() {
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex-1">
                           <p className="text-xs text-muted-foreground mb-1.5">Available Quantity</p>
-                          <div className="flex items-center">
-                            <Badge
-                              variant={
-                                quantityToDisplay !== null && quantityToDisplay === 0
-                                  ? 'destructive'
-                                  : 'default'
-                              }
-                              className="px-3 py-1"
-                            >
-                              {quantityToDisplay ?? '—'}
-                            </Badge>
-                          </div>
+                          <Badge
+                            variant={
+                              quantityToDisplay !== null && quantityToDisplay === 0
+                                ? 'destructive'
+                                : 'default'
+                            }
+                            className="px-3 py-1"
+                          >
+                            {quantityToDisplay ?? '—'}
+                          </Badge>
                         </div>
                         <div className="flex flex-col items-end">
                           <p className="text-xs text-muted-foreground mb-1.5">Price</p>

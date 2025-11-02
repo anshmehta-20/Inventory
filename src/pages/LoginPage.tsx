@@ -84,9 +84,9 @@ export default function LoginPage() {
             )}
           </Button>
 
-          <div className="text-center text-sm text-muted-foreground">
-            <p>By signing in, you agree to our terms of service</p>
-          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            By signing in, you agree to our terms of service
+          </p>
         </CardContent>
       </Card>
       </div>

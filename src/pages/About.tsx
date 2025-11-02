@@ -42,7 +42,7 @@ export default function About() {
           </section>
         </FadeContent>
 
-        <FadeContent duration={1000} delay={120} className="block">
+        <FadeContent duration={1000} delay={120}>
           <Card className="border-border/60 shadow-sm">
             <CardContent className="grid gap-6 py-8 md:grid-cols-3">
               {contactDetails.map((detail) => (
