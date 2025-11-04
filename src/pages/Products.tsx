@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase, Product, ProductVariant } from '@/lib/supabase';
 import Header from '@/components/Header';
 import ProductDetailDialog from '@/components/ProductDetailDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -13,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Package, Search } from 'lucide-react';
+import { Package, Search, SlidersHorizontal, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 const parseNumericValue = (value: string): number | null => {
@@ -108,10 +110,14 @@ type RawProduct = Omit<Product, 'product_variants'> & {
 };
 
 export default function UserDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Product[]>([]);
   const [filteredItems, setFilteredItems] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get('category') || 'all');
+  const [sortBy, setSortBy] = useState<string>('name-asc');
+  const [categories, setCategories] = useState<string[]>([]);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [storeStatus, setStoreStatus] = useState<boolean | null>(null);
   const [storeStatusLoading, setStoreStatusLoading] = useState(true);
@@ -177,6 +183,25 @@ export default function UserDashboard() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('product')
+        .select('category')
+        .not('category', 'is', null);
+
+      if (error) throw error;
+
+      const uniqueCategories = Array.from(
+        new Set(data?.map((item) => item.category).filter(Boolean) as string[])
+      ).sort();
+
+      setCategories(uniqueCategories);
+    } catch (error: any) {
+      console.error(error);
+    }
+  };
+
   // Refresh store status periodically to reflect automated changes
   useEffect(() => {
     // Refresh status every 10 minutes to catch automated updates
@@ -191,6 +216,7 @@ export default function UserDashboard() {
     fetchItems();
     fetchStoreStatus();
     fetchCategoryCount(true);
+    fetchCategories();
 
     const inventoryChannel = supabase
       .channel('inventory_changes_public')
@@ -199,6 +225,7 @@ export default function UserDashboard() {
         { event: '*', schema: 'public', table: 'product' },
         () => {
           fetchItems();
+          fetchCategories();
         }
       )
       .on(
@@ -243,48 +270,102 @@ export default function UserDashboard() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredItems(items);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredItems(
-        items.filter((item) => {
-          const matchesItem =
-            item.name.toLowerCase().includes(query) ||
-            (item.category && item.category.toLowerCase().includes(query)) ||
-            (item.description && item.description.toLowerCase().includes(query));
+    let result = [...items];
 
-          const matchesVariant = item.variants.some((variant) => {
-            const value = variant.variant_value?.toLowerCase() || '';
-            const sku = variant.sku?.toLowerCase() || '';
-            const type = variant.variant_type?.toLowerCase() || '';
-
-            return (
-              value.includes(query) ||
-              sku.includes(query) ||
-              type.includes(query) ||
-              variant.price.toString().includes(query) ||
-              variant.quantity.toString().includes(query)
-            );
-          });
-
-          const priceMatches =
-            item.price !== null && item.price !== undefined &&
-            item.price.toString().includes(query);
-
-          const quantityMatches =
-            item.quantity !== null && item.quantity !== undefined &&
-            item.quantity.toString().includes(query);
-
-          const matchesSinglePrice = !item.has_variants ? priceMatches || quantityMatches : false;
-
-          const matchesSku = item.sku ? item.sku.toLowerCase().includes(query) : false;
-
-          return matchesItem || matchesVariant || matchesSinglePrice || matchesSku;
-        })
-      );
+    // Apply category filter
+    if (selectedCategory !== 'all') {
+      result = result.filter((item) => item.category === selectedCategory);
     }
-  }, [searchQuery, items]);
+
+    // Apply search filter
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((item) => {
+        const matchesItem =
+          item.name.toLowerCase().includes(query) ||
+          (item.category && item.category.toLowerCase().includes(query)) ||
+          (item.description && item.description.toLowerCase().includes(query));
+
+        const matchesVariant = item.variants.some((variant) => {
+          const value = variant.variant_value?.toLowerCase() || '';
+          const sku = variant.sku?.toLowerCase() || '';
+          const type = variant.variant_type?.toLowerCase() || '';
+
+          return (
+            value.includes(query) ||
+            sku.includes(query) ||
+            type.includes(query) ||
+            variant.price.toString().includes(query) ||
+            variant.quantity.toString().includes(query)
+          );
+        });
+
+        const priceMatches =
+          item.price !== null && item.price !== undefined &&
+          item.price.toString().includes(query);
+
+        const quantityMatches =
+          item.quantity !== null && item.quantity !== undefined &&
+          item.quantity.toString().includes(query);
+
+        const matchesSinglePrice = !item.has_variants ? priceMatches || quantityMatches : false;
+
+        const matchesSku = item.sku ? item.sku.toLowerCase().includes(query) : false;
+
+        return matchesItem || matchesVariant || matchesSinglePrice || matchesSku;
+      });
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'price-asc': {
+          const priceA = a.has_variants && a.variants.length > 0 
+            ? Math.min(...a.variants.map(v => v.price))
+            : (a.price ?? 0);
+          const priceB = b.has_variants && b.variants.length > 0 
+            ? Math.min(...b.variants.map(v => v.price))
+            : (b.price ?? 0);
+          return priceA - priceB;
+        }
+        case 'price-desc': {
+          const priceA = a.has_variants && a.variants.length > 0 
+            ? Math.max(...a.variants.map(v => v.price))
+            : (a.price ?? 0);
+          const priceB = b.has_variants && b.variants.length > 0 
+            ? Math.max(...b.variants.map(v => v.price))
+            : (b.price ?? 0);
+          return priceB - priceA;
+        }
+        case 'stock-asc': {
+          const stockA = a.has_variants && a.variants.length > 0 
+            ? a.variants.reduce((sum, v) => sum + v.quantity, 0)
+            : (a.quantity ?? 0);
+          const stockB = b.has_variants && b.variants.length > 0 
+            ? b.variants.reduce((sum, v) => sum + v.quantity, 0)
+            : (b.quantity ?? 0);
+          return stockA - stockB;
+        }
+        case 'stock-desc': {
+          const stockA = a.has_variants && a.variants.length > 0 
+            ? a.variants.reduce((sum, v) => sum + v.quantity, 0)
+            : (a.quantity ?? 0);
+          const stockB = b.has_variants && b.variants.length > 0 
+            ? b.variants.reduce((sum, v) => sum + v.quantity, 0)
+            : (b.quantity ?? 0);
+          return stockB - stockA;
+        }
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredItems(result);
+  }, [searchQuery, items, selectedCategory, sortBy]);
 
   useEffect(() => {
     setSelectedVariants((prev) => {
@@ -480,19 +561,36 @@ export default function UserDashboard() {
           </Card>
         </div>
 
-        {/* Enhanced Search Card */}
+        {/* Enhanced Search and Filter Card */}
         <Card className="mb-8 border-2 hover:border-primary/30 transition-all duration-300 bg-gradient-to-br from-card to-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl group">
           <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <Search className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Search className="w-5 h-5 text-primary" />
+                </div>
+                <CardTitle className="text-xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Search & Filter
+                </CardTitle>
               </div>
-              <CardTitle className="text-xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                Search Inventory
-              </CardTitle>
+              {(selectedCategory !== 'all' || searchQuery) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setSearchQuery('');
+                    setSearchParams({});
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Clear
+                </Button>
+              )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="relative group">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 pointer-events-none transition-colors group-focus-within:text-primary" />
               <Input
@@ -508,6 +606,63 @@ export default function UserDashboard() {
                 className="pl-12 h-12 text-base border-2 focus:border-primary/50 transition-all duration-300 rounded-xl shadow-sm"
               />
             </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Category</span>
+                </div>
+                <Select value={selectedCategory} onValueChange={(value) => {
+                  setSelectedCategory(value);
+                  if (value === 'all') {
+                    setSearchParams({});
+                  } else {
+                    setSearchParams({ category: value });
+                  }
+                }}>
+                  <SelectTrigger className="h-10 border-2 hover:border-primary/30 transition-colors">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Sort By</span>
+                </div>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-10 border-2 hover:border-primary/30 transition-colors">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                    <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                    <SelectItem value="price-asc">Price (Low to High)</SelectItem>
+                    <SelectItem value="price-desc">Price (High to Low)</SelectItem>
+                    <SelectItem value="stock-asc">Stock (Low to High)</SelectItem>
+                    <SelectItem value="stock-desc">Stock (High to Low)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {filteredItems.length !== items.length && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg">
+                <span className="text-sm font-medium text-primary">
+                  Showing {filteredItems.length} of {items.length} products
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
 

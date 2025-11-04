@@ -114,13 +114,6 @@ export default function Landing() {
                 </Link>
               </Button>
             </div>
-
-            {/* Scroll Indicator */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
-              <div className="w-6 h-10 border-2 border-muted-foreground/30 rounded-full flex items-start justify-center p-2">
-                <div className="w-1.5 h-2 bg-muted-foreground/50 rounded-full" />
-              </div>
-            </div>
           </FadeContent>
         </div>
       </section>
@@ -146,24 +139,32 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             <FadeContent duration={800} delay={200}>
-              <Card className="group relative hover:shadow-2xl transition-all duration-500 border-2 hover:border-amber-500/50 overflow-hidden bg-gradient-to-br from-card to-card hover:-translate-y-2">
+              <Link to="/products?category=Dry Fruits" className="block">
+                <Card className="group relative hover:shadow-2xl transition-all duration-500 border-2 hover:border-amber-500/50 overflow-hidden bg-gradient-to-br from-card to-card hover:-translate-y-2 cursor-pointer">
                 {/* Floating Badge */}
                 <div className="absolute top-4 right-4 z-20">
                   <Badge className="bg-amber-500 text-white shadow-lg">Premium</Badge>
                 </div>
                 
-                {/* Image Section with Parallax Effect */}
-                <div className="aspect-[4/3] bg-gradient-to-br from-amber-100 via-orange-50 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/20 flex items-center justify-center relative overflow-hidden">
-                  {/* Animated Background Pattern */}
-                  <div className="absolute inset-0 opacity-30">
+                {/* Image Section with Real Photo */}
+                <div className="aspect-[4/3] bg-gradient-to-br from-amber-100 via-orange-50 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/20 relative overflow-hidden">
+                  <img 
+                    src="/dry-fruits.png" 
+                    alt="Premium Dry Fruits Collection" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  
+                  {/* Overlay gradient for better text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  {/* Icon with Animation - Commented out but kept for reference */}
+                  {/* <div className="absolute inset-0 opacity-30">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(251,191,36,0.3),transparent_50%)]" />
                   </div>
-                  
-                  {/* Icon with Animation */}
                   <div className="relative z-10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
                     <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full animate-pulse" />
                     <Sparkles className="w-28 h-28 text-amber-600 dark:text-amber-400 relative" />
-                  </div>
+                  </div> */}
                   
                   {/* Decorative Elements */}
                   <div className="absolute top-4 left-4 w-2 h-2 bg-amber-500 rounded-full animate-ping" />
@@ -186,29 +187,38 @@ export default function Landing() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             </FadeContent>
 
             <FadeContent duration={800} delay={300}>
-              <Card className="group relative hover:shadow-2xl transition-all duration-500 border-2 hover:border-rose-500/50 overflow-hidden bg-gradient-to-br from-card to-card hover:-translate-y-2">
+              <Link to="/products?category=Sweets" className="block">
+                <Card className="group relative hover:shadow-2xl transition-all duration-500 border-2 hover:border-rose-500/50 overflow-hidden bg-gradient-to-br from-card to-card hover:-translate-y-2 cursor-pointer">
                 {/* Floating Badge */}
                 <div className="absolute top-4 right-4 z-20">
                   <Badge className="bg-rose-500 text-white shadow-lg">Traditional</Badge>
                 </div>
                 
-                {/* Image Section */}
-                <div className="aspect-[4/3] bg-gradient-to-br from-rose-100 via-pink-50 to-rose-100 dark:from-rose-900/30 dark:to-pink-900/20 flex items-center justify-center relative overflow-hidden">
-                  {/* Animated Background */}
-                  <div className="absolute inset-0 opacity-30">
+                {/* Image Section with Real Photo */}
+                <div className="aspect-[4/3] bg-gradient-to-br from-rose-100 via-pink-50 to-rose-100 dark:from-rose-900/30 dark:to-pink-900/20 relative overflow-hidden">
+                  <img 
+                    src="/sweets.png" 
+                    alt="Traditional Indian Sweets" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  
+                  {/* Overlay gradient for better text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  {/* Icon with Animation - Commented out but kept for reference */}
+                  {/* <div className="absolute inset-0 opacity-30">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(244,63,94,0.3),transparent_50%)]" />
                   </div>
-                  
-                  {/* Icon with Animation */}
                   <div className="relative z-10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
                     <div className="absolute inset-0 bg-rose-500/20 blur-2xl rounded-full animate-pulse" />
                     <svg className="w-28 h-28 text-rose-600 dark:text-rose-400 relative" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                     </svg>
-                  </div>
+                  </div> */}
                   
                   {/* Decorative Elements */}
                   <div className="absolute top-4 left-4 w-2 h-2 bg-rose-500 rounded-full animate-ping" />
@@ -231,10 +241,12 @@ export default function Landing() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             </FadeContent>
 
             <FadeContent duration={800} delay={400}>
-              <Card className="group relative hover:shadow-2xl transition-all duration-500 border-2 hover:border-orange-500/50 overflow-hidden bg-gradient-to-br from-card to-card hover:-translate-y-2">
+              <Link to="/products?category=Namkeen" className="block">
+                <Card className="group relative hover:shadow-2xl transition-all duration-500 border-2 hover:border-orange-500/50 overflow-hidden bg-gradient-to-br from-card to-card hover:-translate-y-2 cursor-pointer">
                 {/* Floating Badge */}
                 <div className="absolute top-4 right-4 z-20">
                   <Badge className="bg-orange-500 text-white shadow-lg">Fresh Daily</Badge>
@@ -274,6 +286,7 @@ export default function Landing() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             </FadeContent>
           </div>
         </div>
@@ -400,14 +413,14 @@ export default function Landing() {
                   </Button>
                 </div>
 
-                <div className="bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 p-8 flex items-center justify-center relative overflow-hidden">
+                <div className="bg-gradient-to-br from-amber-100 to-orange-100 dark:from-background dark:to-background p-8 flex items-center justify-center relative overflow-hidden border-l dark:border-l-primary/20">
                   <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTEsMTkxLDM2LDAuMSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-50" />
                   <div className="text-center space-y-4 relative z-10">
-                    <MapPin className="w-20 h-20 mx-auto text-amber-600 dark:text-amber-500" />
-                    <p className="text-lg font-semibold text-foreground">
+                    <MapPin className="w-20 h-20 mx-auto text-amber-600 dark:text-primary" />
+                    <p className="text-lg font-semibold text-amber-900 dark:text-foreground">
                       Located in the heart of<br />Kandivali West
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-amber-800 dark:text-muted-foreground">
                       Easy to reach, convenient parking
                     </p>
                   </div>
