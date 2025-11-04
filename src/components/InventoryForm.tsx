@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase, InventoryItem } from '@/lib/supabase';
+import { supabase, Product } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,6 +41,11 @@ const inventorySchema = z.object({
     .optional(),
   is_visible: z.boolean().default(true),
   has_variants: z.boolean().default(false),
+  image_url: z
+    .string()
+    .url('Please enter a valid URL')
+    .optional()
+    .or(z.literal('')),
   sku: z
     .string()
     .max(120, 'SKU must be less than 120 characters')
@@ -64,7 +69,7 @@ type InventoryFormData = z.infer<typeof inventorySchema>;
 interface InventoryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item?: InventoryItem | null;
+  item?: Product | null;
   onSuccess: () => void;
 }
 
@@ -90,6 +95,7 @@ export default function InventoryForm({
       category: null,
       is_visible: true,
       has_variants: false,
+      image_url: '',
       sku: '',
       price: 0,
       quantity: 0,
@@ -105,6 +111,7 @@ export default function InventoryForm({
         category: item.category ?? null,
         is_visible: item.is_visible,
         has_variants: item.has_variants,
+        image_url: item.image_url ?? '',
         sku: item.sku ?? '',
         price: item.price ?? 0,
         quantity: item.quantity ?? 0,
@@ -116,6 +123,7 @@ export default function InventoryForm({
         category: null,
         is_visible: true,
         has_variants: false,
+        image_url: '',
         sku: '',
         price: 0,
         quantity: 0,
@@ -195,6 +203,7 @@ export default function InventoryForm({
       const descriptionValue = data.description?.trim() ?? '';
       const categoryValue = typeof data.category === 'string' ? data.category.trim() : '';
       const skuValue = typeof data.sku === 'string' ? data.sku.trim() : '';
+      const imageUrlValue = typeof data.image_url === 'string' ? data.image_url.trim() : '';
 
       const submitData = {
         name: data.name,
@@ -202,6 +211,7 @@ export default function InventoryForm({
         category: categoryValue === '' ? null : categoryValue,
         is_visible: data.is_visible,
         has_variants: data.has_variants,
+        image_url: imageUrlValue === '' ? null : imageUrlValue,
         price: data.has_variants ? 0 : data.price,
         quantity: data.has_variants ? 0 : data.quantity,
         sku: data.has_variants ? null : skuValue === '' ? null : skuValue,
@@ -210,7 +220,7 @@ export default function InventoryForm({
 
       if (item) {
         const { error } = await supabase
-          .from('inventory_items')
+          .from('product')
           .update(submitData)
           .eq('id', item.id);
 
@@ -221,7 +231,7 @@ export default function InventoryForm({
           description: 'Item updated successfully',
         });
       } else {
-        const { error } = await supabase.from('inventory_items').insert([submitData]);
+        const { error } = await supabase.from('product').insert([submitData]);
 
         if (error) throw error;
 
@@ -400,8 +410,29 @@ export default function InventoryForm({
 
             <FormField
               control={form.control}
-              name="sku"
+              name="image_url"
               render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Image URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="url"
+                      placeholder="https://example.com/product-image.jpg"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Enter the URL of the product image.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sku"
+              render={({ field}) => (
                 <FormItem>
                   <FormLabel>SKU</FormLabel>
                   <FormControl>

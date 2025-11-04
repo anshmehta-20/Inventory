@@ -25,7 +25,8 @@ export default function Header({
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const isIndexPage = location.pathname === "/";
+  const isLandingPage = location.pathname === "/";
+  const isProductsPage = location.pathname === "/products";
   const isAdminPage = location.pathname === "/admin";
   const isAboutPage = location.pathname === "/about";
 
@@ -104,12 +105,24 @@ export default function Header({
                   <Button
                     variant="ghost"
                     className={`justify-start h-12 rounded-xl hover:bg-primary/10 transition-all duration-200 ${
-                      isIndexPage ? 'bg-primary/5 text-primary shadow-sm' : ''
+                      isLandingPage ? 'bg-primary/5 text-primary shadow-sm' : ''
                     }`}
                     onClick={() => navigate("/")}
                   >
                     <Home className="w-5 h-5 mr-3" />
-                    <span className="font-medium">Inventory</span>
+                    <span className="font-medium">Home</span>
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button
+                    variant="ghost"
+                    className={`justify-start h-12 rounded-xl hover:bg-primary/10 transition-all duration-200 ${
+                      isProductsPage ? 'bg-primary/5 text-primary shadow-sm' : ''
+                    }`}
+                    onClick={() => navigate("/products")}
+                  >
+                    <ShoppingBag className="w-5 h-5 mr-3" />
+                    <span className="font-medium">Products</span>
                   </Button>
                 </SheetClose>
                 <SheetClose asChild>
@@ -167,7 +180,8 @@ export default function Header({
             </SheetContent>
           </Sheet>
           {profile?.isAdmin &&
-            !isIndexPage &&
+            !isLandingPage &&
+            !isProductsPage &&
             !isAboutPage &&
             !isAdminPage && (
               <Button onClick={() => navigate("/admin")}>
@@ -175,13 +189,13 @@ export default function Header({
               </Button>
             )}
           {profile
-            ? !isIndexPage && !isAboutPage && !isAdminPage && (
+            ? !isLandingPage && !isProductsPage && !isAboutPage && !isAdminPage && (
                 <Button variant="destructive" onClick={signOut}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
                 </Button>
               )
-            : !isIndexPage && (
+            : !isLandingPage && !isProductsPage && (
                 <Button onClick={() => navigate("/login")}>Login</Button>
               )}
         </div>

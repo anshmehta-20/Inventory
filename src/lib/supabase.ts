@@ -15,7 +15,7 @@ export interface Profile {
   isAdmin: boolean;
 }
 
-export interface InventoryItem {
+export interface Product {
   id: string;
   name: string;
   sku: string | null;
@@ -25,14 +25,18 @@ export interface InventoryItem {
   price: number | null;
   quantity: number | null;
   is_visible: boolean;
+  image_url: string | null;
   last_updated: string | null;
   updated_by: string | null;
-  item_variants: ItemVariant[];
+  variants: ProductVariant[];
 }
 
-export interface ItemVariant {
+// Legacy type alias for backward compatibility during migration
+export type InventoryItem = Product;
+
+export interface ProductVariant {
   id: string;
-  item_id: string;
+  product_id: string;
   sku: string;
   variant_type: 'weight' | 'pcs' | 'price' | 'flavor' | 'size';
   variant_value: string;
@@ -41,6 +45,9 @@ export interface ItemVariant {
   last_updated: string;
   updated_by: string | null;
 }
+
+// Legacy type alias for backward compatibility during migration
+export type ItemVariant = ProductVariant;
 
 export interface StoreStatus {
   id: string;

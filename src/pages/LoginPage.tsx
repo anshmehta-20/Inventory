@@ -34,17 +34,17 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header title="Welcome back" subtitle="Know what’s available before you step in-store." />
+      <Header />
 
-      <div className="flex items-center justify-center p-4 pt-20">
+      <div className="flex items-center justify-center p-4 pt-24">
         <Card className="w-full max-w-md shadow-lg border-border bg-card">
         <CardHeader className="space-y-3 text-center">
           <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
             <Package className="w-6 h-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold">Shreeji Foods</CardTitle>
+          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
           <CardDescription className="text-base">
-            Dry Fruits Sweets & Namkeen
+            Sign in to check what's available in store
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

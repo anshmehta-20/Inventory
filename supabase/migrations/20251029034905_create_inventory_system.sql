@@ -5,8 +5,8 @@ create table if not exists public.category (
   description text
 );
 
--- INVENTORY ITEMS TABLE (base product info)
-create table public.inventory_items (
+-- PRODUCT TABLE (base product info)
+create table public.product (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   sku text unique,                    -- used only when has_variants = false
@@ -16,14 +16,15 @@ create table public.inventory_items (
   has_variants boolean not null default false,     -- NEW: distinguishes variant-type vs single-type
   price int default 0,                                       -- used only when has_variants = false
   quantity integer default 0,                      -- used only when has_variants = false
+  image_url text default null,
   last_updated timestamp NOT NULL DEFAULT now(),      -- used only when has_variants = false
   updated_by uuid REFERENCES auth.users(id)
 );
 
--- ITEM VARIANTS TABLE (handles weight, pieces, flavor, etc.)
-create table public.item_variants (
+-- PRODUCT VARIANTS TABLE (handles weight, pieces, flavor, etc.)
+create table public.product_variants (
   id uuid primary key default gen_random_uuid(),
-  item_id uuid references public.inventory_items(id) on delete cascade,
+  product_id uuid references public.product(id) on delete cascade,
   sku text not null unique,
   variant_type text check (variant_type IN ('weight', 'pcs', 'price', 'flavor', 'size')) not null,
   variant_value text not null,           -- e.g., '250g', '12pcs', 'Small Pack'
@@ -53,7 +54,7 @@ end;
 $$ language plpgsql;
 
 create trigger trg_update_last_updated_variant
-before update on public.item_variants
+before update on public.product_variants
 for each row
 execute function public.update_last_updated();
 
@@ -70,33 +71,33 @@ $$ language sql security definer;
 
 -- ENABLE RLS (Row-Level Security)
 alter table public.category enable row level security;
-alter table public.inventory_items enable row level security;
-alter table public.item_variants enable row level security;
+alter table public.product enable row level security;
+alter table public.product_variants enable row level security;
 alter table public.admin_users enable row level security;
 
 -- POLICIES
 
--- INVENTORY ITEMS
-create policy "Admins can manage inventory items"
-on public.inventory_items
+-- PRODUCT
+create policy "Admins can manage product"
+on public.product
 for all
 using (public.is_admin())
 with check (public.is_admin());
 
-create policy "Users can view inventory items"
-on public.inventory_items
+create policy "Users can view product"
+on public.product
 for select
 using (true);
 
--- ITEM VARIANTS
-create policy "Admins can manage item variants"
-on public.item_variants
+-- PRODUCT VARIANTS
+create policy "Admins can manage product variants"
+on public.product_variants
 for all
 using (public.is_admin())
 with check (public.is_admin());
 
-create policy "Users can view item variants"
-on public.item_variants
+create policy "Users can view product variants"
+on public.product_variants
 for select
 using (true);
 
@@ -137,11 +138,11 @@ end;
 $$ language plpgsql;
 
 create trigger trg_nullify_empty_category_name
-before insert or update on public.inventory_items
+before insert or update on public.product
 for each row
 execute function public.nullify_empty_category_name();
 
-CREATE OR REPLACE FUNCTION public.update_inventory_last_updated()
+CREATE OR REPLACE FUNCTION public.update_product_last_updated()
 RETURNS trigger AS $$
 BEGIN
   NEW.last_updated = now();
@@ -149,7 +150,33 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_update_inventory_last_updated
-BEFORE UPDATE ON public.inventory_items
+CREATE TRIGGER trg_update_product_last_updated
+BEFORE UPDATE ON public.product
 FOR EACH ROW
-EXECUTE FUNCTION public.update_inventory_last_updated();
+EXECUTE FUNCTION public.update_product_last_updated();
+
+-- STORE STATUS TABLE
+create table if not exists public.store_status (
+  id uuid primary key default gen_random_uuid(),
+  is_open boolean not null default true,
+  updated_at timestamp with time zone default now(),
+  updated_by uuid references auth.users(id) on delete set null
+);
+
+-- ENABLE RLS (Row-Level Security)
+alter table public.store_status enable row level security;
+
+-- POLICIES
+
+-- Users can view store status
+create policy "Users can view store status"
+on public.store_status
+for select
+using (true);
+
+-- Admins can manage store status
+create policy "Admins can manage store status"
+on public.store_status
+for all
+using (public.is_admin())
+with check (public.is_admin());

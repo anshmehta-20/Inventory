@@ -12,8 +12,9 @@ import Footer from '@/components/Footer';
 // Pages
 import LoginPage from '@/pages/LoginPage';
 import AdminDashboard from '@/pages/AdminDashboard';
-import Index from '@/pages/Index';
+import Index from '@/pages/Products';
 import About from '@/pages/About';
+import Landing from '@/pages/Landing';
 
 
 // Dummy NotFound and RequireAdmin for fallback (replace with your actual components)
@@ -65,7 +66,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* Main pages */}
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/products" element={<Index />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/about" element={<About />} />
               {/* Admin */}

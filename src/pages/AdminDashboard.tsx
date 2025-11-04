@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { supabase, InventoryItem, ItemVariant } from '@/lib/supabase';
+import { supabase, Product, ProductVariant } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,7 @@ import InventoryForm from '@/components/InventoryForm';
 import CategoryForm from '@/components/CategoryForm';
 import VariantForm from '@/components/VariantForm';
 
-const VARIANT_TYPE_LABELS: Record<ItemVariant['variant_type'], string> = {
+const VARIANT_TYPE_LABELS: Record<ProductVariant['variant_type'], string> = {
   weight: 'Weight',
   pcs: 'Pieces',
   price: 'Price',
@@ -66,8 +66,8 @@ const VARIANT_TYPE_LABELS: Record<ItemVariant['variant_type'], string> = {
   size: 'Size',
 };
 
-type RawInventoryItem = Omit<InventoryItem, 'item_variants'> & {
-  item_variants: ItemVariant[] | null;
+type RawProduct = Omit<Product, 'variants'> & {
+  product_variants: ProductVariant[] | null;
 };
 
 type CategoryOption = {
@@ -116,7 +116,7 @@ const parseWeightInGrams = (value: string): number | null => {
   return num;
 };
 
-const sortVariants = (variants: ItemVariant[]) => {
+const sortVariants = (variants: ProductVariant[]) => {
   return [...variants].sort((a, b) => {
     // Check if this is a weight-based variant
     const isWeightVariant = a.variant_type === 'weight' || b.variant_type === 'weight';
@@ -156,20 +156,20 @@ const sortVariants = (variants: ItemVariant[]) => {
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
+  const [items, setItems] = useState<Product[]>([]);
+  const [filteredItems, setFilteredItems] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Product | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<Product | null>(null);
   const [variantFormOpen, setVariantFormOpen] = useState(false);
   const [variantParentItemId, setVariantParentItemId] = useState<string | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<ItemVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [variantDeleteDialogOpen, setVariantDeleteDialogOpen] = useState(false);
-  const [variantToDelete, setVariantToDelete] = useState<ItemVariant | null>(null);
+  const [variantToDelete, setVariantToDelete] = useState<ProductVariant | null>(null);
   const [variantParentItemName, setVariantParentItemName] = useState<string>('');
   const [selectedVariantsMap, setSelectedVariantsMap] = useState<Record<string, string>>({});
   const [storeStatus, setStoreStatus] = useState<boolean | null>(null);
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
   const [categoryCount, setCategoryCount] = useState(0);
   const [categoryCountLoading, setCategoryCountLoading] = useState(true);
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
-  const [quantityEditItem, setQuantityEditItem] = useState<{ item: InventoryItem; variant: ItemVariant | null } | null>(null);
+  const [quantityEditItem, setQuantityEditItem] = useState<{ item: Product; variant: ProductVariant | null } | null>(null);
   const [newQuantity, setNewQuantity] = useState<string>('');
   const [updatingQuantity, setUpdatingQuantity] = useState(false);
   const { toast } = useToast();
@@ -307,12 +307,12 @@ export default function AdminDashboard() {
     setSelectedVariantsMap((prev) => ({ ...prev, [itemId]: variantId }));
   };
 
-  const getVariantsForItem = (item: InventoryItem) => {
+  const getVariantsForItem = (item: Product) => {
     if (!item.has_variants) {
       return { sortedVariants: [], selectedVariant: null };
     }
 
-    const sortedVariants = sortVariants(item.item_variants);
+    const sortedVariants = sortVariants(item.variants);
     const currentId = selectedVariantsMap[item.id];
     const selectedVariant =
       (currentId && sortedVariants.find((variant) => variant.id === currentId)) ||
@@ -401,14 +401,14 @@ export default function AdminDashboard() {
       .channel('inventory_changes_admin')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'inventory_items' },
+        { event: '*', schema: 'public', table: 'product' },
         () => {
           fetchItems();
         }
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'item_variants' },
+        { event: '*', schema: 'public', table: 'product_variants' },
         () => {
           fetchItems();
         }
@@ -462,7 +462,7 @@ export default function AdminDashboard() {
             (item.category && item.category.toLowerCase().includes(query)) ||
             (item.description && item.description.toLowerCase().includes(query));
 
-          const matchesVariant = item.item_variants.some((variant) => {
+          const matchesVariant = item.variants.some((variant: ProductVariant) => {
             const value = variant.variant_value?.toLowerCase() || '';
             const sku = variant.sku?.toLowerCase() || '';
             const type = variant.variant_type?.toLowerCase() || '';
@@ -516,7 +516,7 @@ export default function AdminDashboard() {
           return;
         }
 
-        const sorted = sortVariants(item.item_variants);
+        const sorted = sortVariants(item.variants);
 
         if (sorted.length === 0) {
           if (next[item.id]) {
@@ -633,17 +633,17 @@ export default function AdminDashboard() {
   const fetchItems = async () => {
     try {
       const { data, error } = await supabase
-        .from('inventory_items')
+        .from('product')
         .select(
-          'id, name, description, category, is_visible, has_variants, price, quantity, sku, last_updated, updated_by, item_variants(*)'
+          'id, name, description, category, is_visible, has_variants, price, quantity, sku, image_url, last_updated, updated_by, product_variants(*)'
         )
         .order('name', { ascending: true })
-        .order('variant_value', { referencedTable: 'item_variants', ascending: true });
+        .order('variant_value', { referencedTable: 'product_variants', ascending: true });
 
       if (error) throw error;
-      const typedData = ((data || []) as RawInventoryItem[]).map((item) => ({
+      const typedData = ((data || []) as RawProduct[]).map((item) => ({
         ...item,
-        item_variants: Array.isArray(item.item_variants) ? item.item_variants : [],
+        variants: Array.isArray(item.product_variants) ? item.product_variants : [],
       }));
       setItems(typedData);
       setFilteredItems(typedData);
@@ -658,7 +658,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleEdit = (item: InventoryItem) => {
+  const handleEdit = (item: Product) => {
     setSelectedItem(item);
     setFormOpen(true);
   };
@@ -668,7 +668,7 @@ export default function AdminDashboard() {
 
     try {
       const { error } = await supabase
-        .from('inventory_items')
+        .from('product')
         .delete()
         .eq('id', itemToDelete.id);
 
@@ -690,15 +690,15 @@ export default function AdminDashboard() {
     }
   };
 
-  const openDeleteDialog = (item: InventoryItem) => {
+  const openDeleteDialog = (item: Product) => {
     setItemToDelete(item);
     setDeleteDialogOpen(true);
   };
 
-  const handleVisibilityToggle = async (item: InventoryItem, isVisible: boolean) => {
+  const handleVisibilityToggle = async (item: Product, isVisible: boolean) => {
     try {
       const { error } = await supabase
-        .from('inventory_items')
+        .from('product')
         .update({ is_visible: isVisible, updated_by: profile?.id ?? null })
         .eq('id', item.id);
 
@@ -725,20 +725,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const openVariantForm = (item: InventoryItem, variant?: ItemVariant | null) => {
+  const openVariantForm = (item: Product, variant?: ProductVariant | null) => {
     setVariantParentItemId(item.id);
     setVariantParentItemName(item.name);
     setSelectedVariant(variant ?? null);
     setVariantFormOpen(true);
   };
 
-  const openVariantDeleteDialog = (item: InventoryItem, variant: ItemVariant) => {
+  const openVariantDeleteDialog = (item: Product, variant: ProductVariant) => {
     setVariantParentItemName(item.name);
     setVariantToDelete(variant);
     setVariantDeleteDialogOpen(true);
   };
 
-  const openQuantityDialog = (item: InventoryItem, variant: ItemVariant | null) => {
+  const openQuantityDialog = (item: Product, variant: ProductVariant | null) => {
     setQuantityEditItem({ item, variant });
     const currentQuantity = variant ? variant.quantity : item.quantity;
     setNewQuantity(currentQuantity?.toString() ?? '0');
@@ -764,7 +764,7 @@ export default function AdminDashboard() {
       if (quantityEditItem.variant) {
         // Update variant quantity
         const { error } = await supabase
-          .from('item_variants')
+          .from('product_variants')
           .update({
             quantity: qty,
             updated_by: profile?.id ?? null,
@@ -775,7 +775,7 @@ export default function AdminDashboard() {
       } else {
         // Update item quantity (no variants)
         const { error } = await supabase
-          .from('inventory_items')
+          .from('product')
           .update({
             quantity: qty,
             last_updated: new Date().toISOString(),
@@ -811,7 +811,7 @@ export default function AdminDashboard() {
 
     try {
       const { error } = await supabase
-        .from('item_variants')
+        .from('product_variants')
         .delete()
         .eq('id', variantToDelete.id);
 
@@ -901,9 +901,9 @@ export default function AdminDashboard() {
           return sum + (item.quantity ?? 0);
         }
 
-        const variants = Array.isArray(item.item_variants) ? item.item_variants : [];
+        const variants = Array.isArray(item.variants) ? item.variants : [];
         const variantTotal = variants.reduce(
-          (variantSum, variant) => variantSum + variant.quantity,
+          (variantSum: number, variant: ProductVariant) => variantSum + variant.quantity,
           0
         );
         return sum + variantTotal;
@@ -1703,8 +1703,8 @@ export default function AdminDashboard() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete "{itemToDelete?.name}"
-              {itemToDelete?.has_variants && itemToDelete.item_variants.length > 0 
-                ? ` and all its ${itemToDelete.item_variants.length} variant${itemToDelete.item_variants.length !== 1 ? 's' : ''}`
+              {itemToDelete?.has_variants && itemToDelete.variants.length > 0 
+                ? ` and all its ${itemToDelete.variants.length} variant${itemToDelete.variants.length !== 1 ? 's' : ''}`
                 : ''
               }. This action cannot be undone.
             </AlertDialogDescription>

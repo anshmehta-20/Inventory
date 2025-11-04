@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { supabase, ItemVariant } from '@/lib/supabase';
+import { supabase, ProductVariant } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ interface VariantFormProps {
   onOpenChange: (open: boolean) => void;
   itemId: string | null;
   itemName?: string;
-  variant?: ItemVariant | null;
+  variant?: ProductVariant | null;
   onSuccess: () => void;
 }
 
@@ -111,7 +111,7 @@ export default function VariantForm({
 
       if (variant) {
         const { error } = await supabase
-          .from('item_variants')
+          .from('product_variants')
           .update({
             variant_type: data.variant_type,
             variant_value: data.variant_value,
@@ -129,9 +129,9 @@ export default function VariantForm({
           description: 'The variant has been updated successfully.',
         });
       } else {
-        const { error } = await supabase.from('item_variants').insert([
+        const { error } = await supabase.from('product_variants').insert([
           {
-            item_id: itemId,
+            product_id: itemId,
             variant_type: data.variant_type,
             variant_value: data.variant_value,
             sku: data.sku,
