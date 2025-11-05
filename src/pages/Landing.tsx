@@ -12,10 +12,12 @@ import {
   ArrowRight
 } from 'lucide-react';
 import FadeContent from '@/components/FadeContent';
+import Header from '@/components/Header';
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       {/* Hero Section - Redesigned with Unique Effects */}
       <section className="relative overflow-hidden min-h-[90vh] flex items-center">
         {/* Animated Background with Multiple Layers */}
@@ -41,31 +43,32 @@ export default function Landing() {
           <Star className="absolute top-1/2 right-1/4 w-7 h-7 text-amber-500 animate-pulse opacity-60 fill-amber-500/50" style={{ animationDelay: '1.5s' }} />
         </div>
         
-        <div className="relative container mx-auto px-4 py-20">
-          <FadeContent duration={800} className="text-center space-y-10 max-w-5xl mx-auto">
+        <div className="relative container mx-auto px-4 py-12 sm:py-16 md:py-20">
+          <FadeContent duration={800} className="text-center space-y-6 sm:space-y-8 md:space-y-10 max-w-5xl mx-auto">
             {/* Animated Badge */}
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <Badge variant="secondary" className="px-5 py-2.5 text-sm font-medium backdrop-blur-sm bg-background/80 border-amber-500/30 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                <Star className="w-4 h-4 mr-2 fill-amber-500 text-amber-500 animate-pulse" />
-                Serving Since 1999
-                <Sparkles className="w-4 h-4 ml-2 text-amber-500 animate-pulse" />
+            <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6">
+              <Badge variant="secondary" className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm font-medium backdrop-blur-sm bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/30 shadow-lg hover:shadow-xl transition-all hover:scale-105 text-amber-900 dark:text-amber-100">
+                <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 fill-amber-500 text-amber-500 animate-pulse" />
+                <span className="hidden xs:inline">Serving Since 1999</span>
+                <span className="xs:hidden">Since 1999</span>
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 ml-1.5 sm:ml-2 text-amber-500 animate-pulse" />
               </Badge>
             </div>
 
             {/* Hero Title with 3D Effect */}
-            <div className="space-y-6">
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground/90">
+            <div className="space-y-4 sm:space-y-6">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground/90">
                 Welcome to
               </h1>
               
               {/* Stunning 3D Text Effect */}
-              <div className="relative inline-block">
-                <h2 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight">
-                  {/* 3D Shadow Layers */}
-                  <span className="absolute inset-0 bg-gradient-to-br from-amber-600 to-orange-600 bg-clip-text text-transparent blur-sm translate-x-1 translate-y-1 opacity-50" aria-hidden="true">
+              <div className="relative inline-block px-2 sm:px-0">
+                <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight">
+                  {/* 3D Shadow Layers - Hidden on very small screens for performance */}
+                  <span className="hidden sm:block absolute inset-0 bg-gradient-to-br from-amber-600 to-orange-600 bg-clip-text text-transparent blur-sm translate-x-1 translate-y-1 opacity-50" aria-hidden="true">
                     Shreeji Foods
                   </span>
-                  <span className="absolute inset-0 bg-gradient-to-br from-orange-600 to-rose-600 bg-clip-text text-transparent blur-md translate-x-2 translate-y-2 opacity-30" aria-hidden="true">
+                  <span className="hidden md:block absolute inset-0 bg-gradient-to-br from-orange-600 to-rose-600 bg-clip-text text-transparent blur-md translate-x-2 translate-y-2 opacity-30" aria-hidden="true">
                     Shreeji Foods
                   </span>
                   
@@ -73,7 +76,7 @@ export default function Landing() {
                   <span 
                     className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 bg-clip-text text-transparent inline-block"
                     style={{
-                      filter: 'drop-shadow(0 0 30px rgba(251, 191, 36, 0.3)) drop-shadow(0 0 60px rgba(249, 115, 22, 0.2))',
+                      filter: 'drop-shadow(0 0 20px rgba(251, 191, 36, 0.3)) drop-shadow(0 0 40px rgba(249, 115, 22, 0.2))',
                     }}
                   >
                     Shreeji Foods
@@ -81,15 +84,15 @@ export default function Landing() {
                 </h2>
                 
                 {/* Animated Underline */}
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4">
-                  <div className="h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent rounded-full opacity-60" />
+                <div className="absolute -bottom-2 sm:-bottom-4 left-1/2 -translate-x-1/2 w-3/4 sm:w-2/3">
+                  <div className="h-0.5 sm:h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent rounded-full opacity-60" />
                   <div className="h-0.5 bg-gradient-to-r from-transparent via-orange-500 to-transparent rounded-full -mt-0.5 opacity-40" />
                 </div>
               </div>
             </div>
 
             {/* Subtitle with Enhanced Styling */}
-            <p className="text-lg md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium mt-8">
+            <p className="text-base sm:text-lg md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium mt-4 sm:mt-6 md:mt-8 px-4">
               Your trusted destination for 
               <span className="text-amber-600 font-bold"> premium dry fruits</span>, 
               <span className="text-rose-600 font-bold"> authentic sweets</span>, and 
@@ -99,18 +102,18 @@ export default function Landing() {
             </p>
 
             {/* CTA Buttons with Enhanced Effects */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8">
-              <Button asChild size="lg" className="text-lg h-14 px-10 shadow-xl hover:shadow-2xl transition-all hover:scale-105 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 group">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-5 pt-6 sm:pt-8 w-full px-4">
+              <Button asChild size="lg" className="w-full sm:w-auto text-base sm:text-lg h-12 sm:h-14 px-6 sm:px-8 md:px-10 shadow-xl hover:shadow-2xl transition-all hover:scale-105 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 group">
                 <Link to="/products">
-                  <ShoppingBag className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
+                  <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:rotate-12 transition-transform" />
                   Browse Products
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="text-lg h-14 px-10 border-2 hover:border-primary hover:bg-primary/5 shadow-lg hover:shadow-xl transition-all hover:scale-105 backdrop-blur-sm group">
+              <Button asChild size="lg" variant="outline" className="w-full sm:w-auto text-base sm:text-lg h-12 sm:h-14 px-6 sm:px-8 md:px-10 border-2 hover:border-primary hover:bg-primary/5 shadow-lg hover:shadow-xl transition-all hover:scale-105 backdrop-blur-sm group">
                 <Link to="/about">
                   Learn More
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
             </div>
@@ -119,25 +122,25 @@ export default function Landing() {
       </section>
 
       {/* Product Categories - Redesigned with Modern Cards */}
-      <section className="py-24 bg-background relative overflow-hidden">
+      <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-background relative overflow-hidden">
         {/* Background Decoration */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-rose-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-64 h-64 sm:w-96 sm:h-96 bg-amber-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 sm:w-96 sm:h-96 bg-rose-500/5 rounded-full blur-3xl" />
         
         <div className="container mx-auto px-4 relative z-10">
-          <FadeContent duration={800} delay={100} className="text-center mb-16">
-            <div className="inline-block px-4 py-2 bg-primary/10 rounded-full mb-4">
-              <span className="text-sm font-semibold text-primary">What We Offer</span>
+          <FadeContent duration={800} delay={100} className="text-center mb-8 sm:mb-12 md:mb-16">
+            <div className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full mb-3 sm:mb-4">
+              <span className="text-xs sm:text-sm font-semibold text-primary">What We Offer</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 sm:mb-4 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 bg-clip-text text-transparent px-4">
               Our Specialties
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
               Discover our wide range of premium quality products, crafted with care and tradition
             </p>
           </FadeContent>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 max-w-7xl mx-auto">
             <FadeContent duration={800} delay={200}>
               <Link to="/products?category=Dry Fruits" className="block">
                 <Card className="group relative hover:shadow-2xl transition-all duration-500 border-2 hover:border-amber-500/50 overflow-hidden bg-gradient-to-br from-card to-card hover:-translate-y-2 cursor-pointer">
@@ -171,18 +174,18 @@ export default function Landing() {
                   <div className="absolute bottom-6 right-6 w-3 h-3 bg-orange-500 rounded-full animate-pulse" />
                 </div>
                 
-                <CardContent className="p-7 space-y-4">
+                <CardContent className="p-4 sm:p-5 md:p-7 space-y-3 sm:space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold text-foreground group-hover:text-amber-600 transition-colors">
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground group-hover:text-amber-600 transition-colors">
                       Premium Dry Fruits
                     </h3>
-                    <ArrowRight className="w-5 h-5 text-amber-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                     Finest quality almonds, cashews, pistachios, walnuts, and more. Carefully sourced and packed fresh for maximum nutrition.
                   </p>
                   <div className="flex items-center gap-2 pt-2">
-                    <div className="h-1 w-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full" />
+                    <div className="h-0.5 sm:h-1 w-8 sm:w-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full" />
                     <span className="text-xs font-medium text-amber-600">Top Quality Assured</span>
                   </div>
                 </CardContent>
@@ -225,18 +228,18 @@ export default function Landing() {
                   <div className="absolute bottom-6 right-6 w-3 h-3 bg-pink-500 rounded-full animate-pulse" />
                 </div>
                 
-                <CardContent className="p-7 space-y-4">
+                <CardContent className="p-4 sm:p-5 md:p-7 space-y-3 sm:space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold text-foreground group-hover:text-rose-600 transition-colors">
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground group-hover:text-rose-600 transition-colors">
                       Traditional Sweets
                     </h3>
-                    <ArrowRight className="w-5 h-5 text-rose-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                     Authentic Indian sweets made with love and traditional recipes. From laddoos to barfis, taste the heritage in every bite.
                   </p>
                   <div className="flex items-center gap-2 pt-2">
-                    <div className="h-1 w-12 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full" />
+                    <div className="h-0.5 sm:h-1 w-8 sm:w-12 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full" />
                     <span className="text-xs font-medium text-rose-600">Homemade Taste</span>
                   </div>
                 </CardContent>
@@ -270,18 +273,18 @@ export default function Landing() {
                   <div className="absolute bottom-6 right-6 w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
                 </div>
                 
-                <CardContent className="p-7 space-y-4">
+                <CardContent className="p-4 sm:p-5 md:p-7 space-y-3 sm:space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold text-foreground group-hover:text-orange-600 transition-colors">
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground group-hover:text-orange-600 transition-colors">
                       Crispy Namkeen
                     </h3>
-                    <ArrowRight className="w-5 h-5 text-orange-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                     Crunchy and flavorful namkeens perfect for any occasion. Fresh, hygienic preparation, absolutely delicious.
                   </p>
                   <div className="flex items-center gap-2 pt-2">
-                    <div className="h-1 w-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" />
+                    <div className="h-0.5 sm:h-1 w-8 sm:w-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" />
                     <span className="text-xs font-medium text-orange-600">Always Fresh</span>
                   </div>
                 </CardContent>

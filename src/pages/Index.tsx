@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { supabase, Product, ProductVariant } from '@/lib/supabase';
 import Header from '@/components/Header';
 import ProductDetailDialog from '@/components/ProductDetailDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -15,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Package, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Package, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
 const parseNumericValue = (value: string): number | null => {
@@ -110,14 +108,10 @@ type RawProduct = Omit<Product, 'product_variants'> & {
 };
 
 export default function UserDashboard() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Product[]>([]);
   const [filteredItems, setFilteredItems] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get('category') || 'all');
-  const [sortBy, setSortBy] = useState<string>('name-asc');
-  const [categories, setCategories] = useState<string[]>([]);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [storeStatus, setStoreStatus] = useState<boolean | null>(null);
   const [storeStatusLoading, setStoreStatusLoading] = useState(true);
@@ -183,25 +177,6 @@ export default function UserDashboard() {
     }
   };
 
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('product')
-        .select('category')
-        .not('category', 'is', null);
-
-      if (error) throw error;
-
-      const uniqueCategories = Array.from(
-        new Set(data?.map((item) => item.category).filter(Boolean) as string[])
-      ).sort();
-
-      setCategories(uniqueCategories);
-    } catch (error: any) {
-      console.error(error);
-    }
-  };
-
   // Refresh store status periodically to reflect automated changes
   useEffect(() => {
     // Refresh status every 10 minutes to catch automated updates
@@ -216,7 +191,6 @@ export default function UserDashboard() {
     fetchItems();
     fetchStoreStatus();
     fetchCategoryCount(true);
-    fetchCategories();
 
     const inventoryChannel = supabase
       .channel('inventory_changes_public')
@@ -225,7 +199,6 @@ export default function UserDashboard() {
         { event: '*', schema: 'public', table: 'product' },
         () => {
           fetchItems();
-          fetchCategories();
         }
       )
       .on(
@@ -270,102 +243,48 @@ export default function UserDashboard() {
   }, []);
 
   useEffect(() => {
-    let result = [...items];
-
-    // Apply category filter
-    if (selectedCategory !== 'all') {
-      result = result.filter((item) => item.category === selectedCategory);
-    }
-
-    // Apply search filter
-    if (searchQuery.trim() !== '') {
+    if (searchQuery.trim() === '') {
+      setFilteredItems(items);
+    } else {
       const query = searchQuery.toLowerCase();
-      result = result.filter((item) => {
-        const matchesItem =
-          item.name.toLowerCase().includes(query) ||
-          (item.category && item.category.toLowerCase().includes(query)) ||
-          (item.description && item.description.toLowerCase().includes(query));
+      setFilteredItems(
+        items.filter((item) => {
+          const matchesItem =
+            item.name.toLowerCase().includes(query) ||
+            (item.category && item.category.toLowerCase().includes(query)) ||
+            (item.description && item.description.toLowerCase().includes(query));
 
-        const matchesVariant = item.variants.some((variant) => {
-          const value = variant.variant_value?.toLowerCase() || '';
-          const sku = variant.sku?.toLowerCase() || '';
-          const type = variant.variant_type?.toLowerCase() || '';
+          const matchesVariant = item.variants.some((variant) => {
+            const value = variant.variant_value?.toLowerCase() || '';
+            const sku = variant.sku?.toLowerCase() || '';
+            const type = variant.variant_type?.toLowerCase() || '';
 
-          return (
-            value.includes(query) ||
-            sku.includes(query) ||
-            type.includes(query) ||
-            variant.price.toString().includes(query) ||
-            variant.quantity.toString().includes(query)
-          );
-        });
+            return (
+              value.includes(query) ||
+              sku.includes(query) ||
+              type.includes(query) ||
+              variant.price.toString().includes(query) ||
+              variant.quantity.toString().includes(query)
+            );
+          });
 
-        const priceMatches =
-          item.price !== null && item.price !== undefined &&
-          item.price.toString().includes(query);
+          const priceMatches =
+            item.price !== null && item.price !== undefined &&
+            item.price.toString().includes(query);
 
-        const quantityMatches =
-          item.quantity !== null && item.quantity !== undefined &&
-          item.quantity.toString().includes(query);
+          const quantityMatches =
+            item.quantity !== null && item.quantity !== undefined &&
+            item.quantity.toString().includes(query);
 
-        const matchesSinglePrice = !item.has_variants ? priceMatches || quantityMatches : false;
+          const matchesSinglePrice = !item.has_variants ? priceMatches || quantityMatches : false;
 
-        const matchesSku = item.sku ? item.sku.toLowerCase().includes(query) : false;
+          const matchesSku = item.sku ? item.sku.toLowerCase().includes(query) : false;
 
-        return matchesItem || matchesVariant || matchesSinglePrice || matchesSku;
-      });
+          return matchesItem || matchesVariant || matchesSinglePrice || matchesSku;
+        })
+      );
     }
-
-    // Apply sorting
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case 'name-asc':
-          return a.name.localeCompare(b.name);
-        case 'name-desc':
-          return b.name.localeCompare(a.name);
-        case 'price-asc': {
-          const priceA = a.has_variants && a.variants.length > 0 
-            ? Math.min(...a.variants.map(v => v.price))
-            : (a.price ?? 0);
-          const priceB = b.has_variants && b.variants.length > 0 
-            ? Math.min(...b.variants.map(v => v.price))
-            : (b.price ?? 0);
-          return priceA - priceB;
-        }
-        case 'price-desc': {
-          const priceA = a.has_variants && a.variants.length > 0 
-            ? Math.max(...a.variants.map(v => v.price))
-            : (a.price ?? 0);
-          const priceB = b.has_variants && b.variants.length > 0 
-            ? Math.max(...b.variants.map(v => v.price))
-            : (b.price ?? 0);
-          return priceB - priceA;
-        }
-        case 'stock-asc': {
-          const stockA = a.has_variants && a.variants.length > 0 
-            ? a.variants.reduce((sum, v) => sum + v.quantity, 0)
-            : (a.quantity ?? 0);
-          const stockB = b.has_variants && b.variants.length > 0 
-            ? b.variants.reduce((sum, v) => sum + v.quantity, 0)
-            : (b.quantity ?? 0);
-          return stockA - stockB;
-        }
-        case 'stock-desc': {
-          const stockA = a.has_variants && a.variants.length > 0 
-            ? a.variants.reduce((sum, v) => sum + v.quantity, 0)
-            : (a.quantity ?? 0);
-          const stockB = b.has_variants && b.variants.length > 0 
-            ? b.variants.reduce((sum, v) => sum + v.quantity, 0)
-            : (b.quantity ?? 0);
-          return stockB - stockA;
-        }
-        default:
-          return 0;
-      }
-    });
-
-    setFilteredItems(result);
-  }, [searchQuery, items, selectedCategory, sortBy]);
+  }, [searchQuery, items]);
 
   useEffect(() => {
     setSelectedVariants((prev) => {
@@ -503,21 +422,24 @@ export default function UserDashboard() {
             }`} />
             
             <div className="flex flex-col space-y-3 relative z-10">
-              <CardDescription className="text-xs sm:text-sm font-medium">Store Status</CardDescription>
-              <div className="flex items-center gap-3 sm:gap-4">
+              <CardDescription className="text-sm font-medium">Store Status</CardDescription>
+              <div className="flex items-center gap-4">
                 <div className="relative">
                   <span
-                    className={`block h-3 w-3 sm:h-4 sm:w-4 rounded-full shadow-[0_0_16px_currentColor] transition-all duration-300 group-hover:scale-110 ${
+                    className={`block h-4 w-4 rounded-full shadow-[0_0_16px_currentColor] transition-all duration-300 group-hover:scale-110 ${
                       storeStatus === null || storeStatusLoading
                         ? 'bg-muted-foreground/40 text-muted-foreground/40'
                         : storeStatus
-                        ? 'bg-emerald-400 text-emerald-400 animate-breathe'
-                        : 'bg-destructive text-destructive animate-breathe'
+                        ? 'bg-emerald-400 text-emerald-400 animate-pulse'
+                        : 'bg-destructive text-destructive animate-pulse'
                     }`}
                     aria-hidden="true"
                   />
+                  {storeStatus && (
+                    <span className="absolute inset-0 h-4 w-4 rounded-full bg-emerald-400 animate-ping opacity-75" />
+                  )}
                 </div>
-                <CardTitle className="text-2xl sm:text-4xl font-bold bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text">
+                <CardTitle className="text-4xl font-bold bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text">
                   {storeStatus === null || storeStatusLoading
                     ? '—'
                     : storeStatus
@@ -532,11 +454,11 @@ export default function UserDashboard() {
           <Card className="group relative overflow-hidden border-2 hover:border-amber-500/50 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <CardHeader className="pb-3 relative z-10">
-              <CardDescription className="text-xs sm:text-sm font-medium flex items-center gap-2">
-                <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
+              <CardDescription className="text-sm font-medium flex items-center gap-2">
+                <Package className="w-4 h-4 text-amber-600" />
                 Total Items
               </CardDescription>
-              <CardTitle className="text-2xl sm:text-4xl font-bold bg-gradient-to-br from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              <CardTitle className="text-4xl font-bold bg-gradient-to-br from-amber-600 to-orange-600 bg-clip-text text-transparent">
                 {loading ? '—' : items.length}
               </CardTitle>
               <div className="h-1 w-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full mt-2" />
@@ -547,55 +469,38 @@ export default function UserDashboard() {
           <Card className="group relative overflow-hidden border-2 hover:border-rose-500/50 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <CardHeader className="pb-3 relative z-10">
-              <CardDescription className="text-xs sm:text-sm font-medium flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <CardDescription className="text-sm font-medium flex items-center gap-2">
+                <svg className="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
                 Categories
               </CardDescription>
-              <CardTitle className="text-2xl sm:text-4xl font-bold bg-gradient-to-br from-rose-600 to-pink-600 bg-clip-text text-transparent">
+              <CardTitle className="text-4xl font-bold bg-gradient-to-br from-rose-600 to-pink-600 bg-clip-text text-transparent">
                 {categoryCountLoading ? '—' : categoryCount}
               </CardTitle>
-              <div className="h-1 w-12 sm:w-16 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full mt-2" />
+              <div className="h-1 w-16 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full mt-2" />
             </CardHeader>
           </Card>
         </div>
 
-        {/* Enhanced Search and Filter Card */}
+        {/* Enhanced Search Card */}
         <Card className="mb-8 border-2 hover:border-primary/30 transition-all duration-300 bg-gradient-to-br from-card to-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl group">
           <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Search className="w-5 h-5 text-primary" />
-                </div>
-                <CardTitle className="text-lg sm:text-xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                  Search & Filter
-                </CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Search className="w-5 h-5 text-primary" />
               </div>
-              {(selectedCategory !== 'all' || searchQuery) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    setSearchQuery('');
-                    setSearchParams({});
-                  }}
-                  className="text-muted-foreground hover:text-foreground w-full sm:w-auto"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Clear Filters
-                </Button>
-              )}
+              <CardTitle className="text-xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                Search Inventory
+              </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <div className="relative group">
-              <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5 pointer-events-none transition-colors group-focus-within:text-primary" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 pointer-events-none transition-colors group-focus-within:text-primary" />
               <Input
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search by item, variant, SKU, category, or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -603,66 +508,9 @@ export default function UserDashboard() {
                     e.preventDefault();
                   }
                 }}
-                className="pl-10 sm:pl-12 h-11 sm:h-12 text-sm sm:text-base border-2 focus:border-primary/50 transition-all duration-300 rounded-xl shadow-sm"
+                className="pl-12 h-12 text-base border-2 focus:border-primary/50 transition-all duration-300 rounded-xl shadow-sm"
               />
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                  <span className="text-xs sm:text-sm font-medium text-muted-foreground">Category</span>
-                </div>
-                <Select value={selectedCategory} onValueChange={(value) => {
-                  setSelectedCategory(value);
-                  if (value === 'all') {
-                    setSearchParams({});
-                  } else {
-                    setSearchParams({ category: value });
-                  }
-                }}>
-                  <SelectTrigger className="h-10 sm:h-11 border-2 hover:border-primary/30 transition-colors text-sm">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                  <span className="text-xs sm:text-sm font-medium text-muted-foreground">Sort By</span>
-                </div>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="h-10 sm:h-11 border-2 hover:border-primary/30 transition-colors text-sm">
-                    <SelectValue placeholder="Sort By" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name-asc">Name (A-Z)</SelectItem>
-                    <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-                    <SelectItem value="price-asc">Price (Low to High)</SelectItem>
-                    <SelectItem value="price-desc">Price (High to Low)</SelectItem>
-                    <SelectItem value="stock-asc">Stock (Low to High)</SelectItem>
-                    <SelectItem value="stock-desc">Stock (High to Low)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {filteredItems.length !== items.length && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg">
-                <span className="text-xs sm:text-sm font-medium text-primary">
-                  Showing {filteredItems.length} of {items.length} products
-                </span>
-              </div>
-            )}
           </CardContent>
         </Card>
 
